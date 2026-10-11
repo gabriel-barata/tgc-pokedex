@@ -78,6 +78,9 @@ Whole stack (run from the repo root; needs Docker):
 - `make migrate`: `make db`, then upgrade the dev database to the latest migration.
 - `make dev`: `make migrate`, then the backend and frontend dev servers; Ctrl-C stops both.
 - `make test`: backend tests with the coverage gate, then frontend tests.
+- `make e2e`: build the production image, start it with a throwaway Postgres from
+  `compose.e2e.yml` (app on 127.0.0.1:8001), run the Playwright tests, then tear the stack
+  down. Needs Chromium once: `pnpm exec playwright install chromium` in `frontend/`.
 - `docker build -t tcg-pokedex .`: build the production image (`Dockerfile`). It serves the
   SPA and the API on :8000, runs migrations on start and needs `TCG_POKEDEX_DATABASE_URL`,
   e.g. `docker run --rm -p 8000:8000 -e TCG_POKEDEX_DATABASE_URL=… tcg-pokedex`.
@@ -105,6 +108,12 @@ Frontend (run from `frontend/`; needs Node 26+ and pnpm, pinned in `package.json
 - `pnpm install`: install dependencies.
 - `pnpm dev`: dev server on :5173. It proxies `/api` and `/healthz` to the backend on :8000.
 - `pnpm test`: run the tests.
+- `pnpm test:e2e`: run the Playwright tests in `e2e/` against a stack already started with
+  `docker compose -f ../compose.e2e.yml up -d --build --wait`. Specs import `test` and
+  `expect` from `e2e/test.ts`, which fails any test whose browser requests leave the app
+  origin, and use role-based selectors. Before the tests, `e2e/global-setup.ts` loads
+  `e2e/fixtures/*.sql` into the database in name order, so fixtures must be idempotent when
+  rerun against the same stack.
 - `pnpm lint`, `pnpm format:check` and `pnpm typecheck`: lint, formatting and strict type
   check; warnings also fail.
 - `pnpm generate:api`: regenerate `openapi.json` and `src/api-schema.gen.ts` from the backend.
@@ -115,14 +124,15 @@ Frontend (run from `frontend/`; needs Node 26+ and pnpm, pinned in `package.json
 - `.github/workflows/ci.yml` runs on every PR and on push to `main`. Its jobs are `backend`,
   `frontend`, `openapi-drift` (fails when `pnpm generate:api` changes the committed files),
   `shell-tests`, `commit-gates`, `image` (builds the production image and smoke-tests it
-  against Postgres) and `publish`. `publish` runs only on push to `main`, after every other
+  against Postgres), `e2e` (runs the Playwright tests in Chromium against the image from
+  `compose.e2e.yml`) and `publish`. `publish` runs only on push to `main`, after every other
   job passes, and pushes `ghcr.io/<owner>/tcg-pokedex:latest` and `:<full commit sha>`.
   `.github/workflows/pr-title.yml` runs `pr-title`.
 - `commit-gates` fails a `feat`/`fix` commit that changes source with no `test` commit (one
   that changes test files) since the previous `feat`/`fix`. The source and test paths are
   listed in `.github/scripts/check-tdd-order.sh`; update them when a new source or test
   location appears.
-- The `main` ruleset requires a PR, squash merges only, and seven checks (every job above
+- The `main` ruleset requires a PR, squash merges only, and eight checks (every job above
   except `publish`); it blocks force pushes and deletion, with no bypass.
   `.github/rulesets/main.json` is its source: after editing it, apply it with
   `gh api --method PUT repos/{owner}/{repo}/rulesets/<id> --input .github/rulesets/main.json`
