@@ -16,7 +16,8 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "generate:api": "uv run --project ../backend python -m tcg_pokedex.openapi > openapi.json && openapi-typescript openapi.json -o src/api-schema.gen.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.1",
