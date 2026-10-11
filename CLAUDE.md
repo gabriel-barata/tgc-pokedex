@@ -67,6 +67,16 @@ One card = one branch = one PR.
 - `bash .specify/tests/ptcg-customizations.test.sh`: tests for the spec-kit customizations
   below (needs `git` and `jq`).
 
+Backend (run from `backend/`; needs `uv`, which installs Python 3.13):
+
+- `uv sync`: install dependencies.
+- `uv run uvicorn tcg_pokedex.app:create_app --factory --reload`: dev server on :8000.
+  Config comes from `TCG_POKEDEX_*` env vars or `backend/.env`.
+- `uv run pytest`: run the tests.
+- `uv run pytest --cov`: run the tests with the coverage gate (branch coverage, 90% floor).
+- `uv run ruff check .` and `uv run ruff format --check .`: lint and formatting.
+- `uv run pyright --warnings`: strict type check; warnings also fail.
+
 ## spec-kit customizations
 
 Spec-kit is patched in place for ticket branches and mandatory test tasks:
