@@ -24,12 +24,13 @@ export default defineConfig([
   },
   {
     files: ["src/**/*.{ts,tsx}"],
-    extends: [
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-      jsxA11y.flatConfigs.recommended,
-    ],
+    extends: [reactHooks.configs.flat.recommended, jsxA11y.flatConfigs.recommended],
     languageOptions: { globals: globals.browser },
+  },
+  {
+    files: ["src/**/*.tsx"],
+    ignores: ["src/**/*.test.tsx", "src/test-utils.tsx"],
+    extends: [reactRefresh.configs.vite],
   },
   {
     files: ["src/**/*.test.{ts,tsx}"],
