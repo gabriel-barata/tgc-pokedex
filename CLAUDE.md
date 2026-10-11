@@ -77,6 +77,16 @@ Backend (run from `backend/`; needs `uv`, which installs Python 3.13):
 - `uv run ruff check .` and `uv run ruff format --check .`: lint and formatting.
 - `uv run pyright --warnings`: strict type check; warnings also fail.
 
+Frontend (run from `frontend/`; needs Node 26+ and pnpm, pinned in `package.json`):
+
+- `pnpm install`: install dependencies.
+- `pnpm dev`: dev server on :5173. It proxies `/api` and `/healthz` to the backend on :8000.
+- `pnpm test`: run the tests.
+- `pnpm lint`, `pnpm format:check` and `pnpm typecheck`: lint, formatting and strict type
+  check; warnings also fail.
+- `pnpm generate:api`: regenerate `openapi.json` and `src/api-schema.gen.ts` from the backend.
+  Run it after any backend API change and commit both files; never edit them by hand.
+
 ## spec-kit customizations
 
 Spec-kit is patched in place for ticket branches and mandatory test tasks:
