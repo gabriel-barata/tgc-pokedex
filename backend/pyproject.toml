@@ -4,8 +4,11 @@ version = "0.1.0"
 description = "Track which Pokémon TCG cards we own or are missing in each set."
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.20.0",
     "fastapi>=0.143.0",
+    "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.15.0",
+    "sqlalchemy>=2.1.4",
     "uvicorn[standard]>=0.54.0",
 ]
 
@@ -20,6 +23,7 @@ dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.0",
+    "testcontainers[postgres]>=4.15.0",
 ]
 
 [tool.pytest]
