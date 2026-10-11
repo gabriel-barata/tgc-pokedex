@@ -31,9 +31,18 @@ One card = one branch = one PR.
 3. Create the branch named in the card's **Branch** field (`PTCG-NNN-<short-slug>`) from an
    up-to-date `main`.
 4. Then, depending on the card:
-   - **`spec-kit: yes`**: run the spec-kit flow, `/speckit-specify` → `/speckit-clarify` →
-     `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement`, on the
-     ticket branch. Spec-kit names the artifact folder after the branch,
+   - **`spec-kit: yes`**: first, in its own session, interview the user with the `grill-me`
+     skill and write the result to `temp/specs/PTCG-NNN-<short-slug>.md`. Keep both short:
+     - Interview: ask only about decisions that change the feature's behavior, one at a time,
+       with a recommended answer. Look facts up instead of asking. Leave implementation choices
+       (libraries, concurrency, file layout, fixtures) to `/speckit-plan`.
+     - Spec: what and why only: user stories with acceptance scenarios, functional
+       requirements, key entities, success criteria, out of scope. No provider surveys,
+       consumer maps, plan notes or decision log. It should read in a few minutes.
+
+     Then run the spec-kit flow on the ticket branch, feeding that file to
+     `/speckit-specify`: `/speckit-specify` → `/speckit-clarify` → `/speckit-plan` →
+     `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement`. Spec-kit names the artifact folder after the branch,
      `specs/PTCG-NNN-<short-slug>/`, and refuses to run `/speckit-specify` on any other
      branch. `/speckit-analyze` is required before implementing (constitution, Quality
      Gate 5).
