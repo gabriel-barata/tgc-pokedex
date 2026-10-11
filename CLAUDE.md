@@ -67,12 +67,24 @@ One card = one branch = one PR.
 - `bash .specify/tests/ptcg-customizations.test.sh`: tests for the spec-kit customizations
   below (needs `git` and `jq`).
 
+Whole stack (run from the repo root; needs Docker):
+
+- `make db`: start the dev Postgres 17 from `compose.dev.yml` on 127.0.0.1:5432.
+- `make migrate`: `make db`, then upgrade the dev database to the latest migration.
+- `make dev`: `make migrate`, then the backend and frontend dev servers; Ctrl-C stops both.
+- `make test`: backend tests with the coverage gate, then frontend tests.
+
 Backend (run from `backend/`; needs `uv`, which installs Python 3.13):
 
 - `uv sync`: install dependencies.
 - `uv run uvicorn tcg_pokedex.app:create_app --factory --reload`: dev server on :8000.
-  Config comes from `TCG_POKEDEX_*` env vars or `backend/.env`.
-- `uv run pytest`: run the tests.
+  Config comes from `TCG_POKEDEX_*` env vars or `backend/.env` (see `backend/.env.example`).
+- `uv run python -m tcg_pokedex.migrations`: upgrade `TCG_POKEDEX_DATABASE_URL` to the latest
+  migration. The container entrypoint runs the same command.
+- `uv run alembic revision --autogenerate -m "<summary>"`: draft a migration from the tables
+  in `tcg_pokedex/schema.py` (dev database at head first), then review it by hand.
+- `uv run pytest`: run the tests. Database tests start Postgres with Testcontainers, so
+  Docker must be running.
 - `uv run pytest --cov`: run the tests with the coverage gate (branch coverage, 90% floor).
 - `uv run ruff check .` and `uv run ruff format --check .`: lint and formatting.
 - `uv run pyright --warnings`: strict type check; warnings also fail.
