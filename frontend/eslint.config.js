@@ -37,7 +37,7 @@ export default defineConfig([
     extends: [testingLibrary.configs["flat/react"], vitest.configs.recommended],
   },
   {
-    files: ["eslint.config.js", "vite.config.ts"],
+    files: ["eslint.config.js", "vite.config.ts", "playwright.config.ts", "e2e/**/*.ts"],
     languageOptions: { globals: globals.node },
   },
   {
