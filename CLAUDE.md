@@ -66,6 +66,11 @@ One card = one branch = one PR.
 
 - `bash .specify/tests/ptcg-customizations.test.sh`: tests for the spec-kit customizations
   below (needs `git` and `jq`).
+- `bash .github/scripts/ci-gates.test.sh`: tests for the CI gate scripts (needs `git`).
+- `bash .github/scripts/check-tdd-order.sh origin/main HEAD`: run the TDD-order gate on the
+  branch before pushing.
+- `bash .github/scripts/check-skipped-tests.sh`: check that every skipped, xfail or todo
+  test names its ticket (`PTCG-NNN`) on the same line.
 
 Whole stack (run from the repo root; needs Docker):
 
@@ -98,6 +103,22 @@ Frontend (run from `frontend/`; needs Node 26+ and pnpm, pinned in `package.json
   check; warnings also fail.
 - `pnpm generate:api`: regenerate `openapi.json` and `src/api-schema.gen.ts` from the backend.
   Run it after any backend API change and commit both files; never edit them by hand.
+
+## CI and branch protection
+
+- `.github/workflows/ci.yml` runs on every PR and on push to `main`. Its jobs are `backend`,
+  `frontend`, `openapi-drift` (fails when `pnpm generate:api` changes the committed files),
+  `shell-tests` and `commit-gates`. `.github/workflows/pr-title.yml` runs `pr-title`.
+- `commit-gates` fails a `feat`/`fix` commit that changes source with no `test` commit (one
+  that changes test files) since the previous `feat`/`fix`. The source and test paths are
+  listed in `.github/scripts/check-tdd-order.sh`; update them when a new source or test
+  location appears.
+- The `main` ruleset requires a PR, squash merges only, and all six checks; it blocks force
+  pushes and deletion, with no bypass. `.github/rulesets/main.json` is its source: after
+  editing it, apply it with
+  `gh api --method PUT repos/{owner}/{repo}/rulesets/<id> --input .github/rulesets/main.json`
+  (`gh api repos/{owner}/{repo}/rulesets` lists the id). A renamed CI job must be renamed
+  in the ruleset in the same PR.
 
 ## spec-kit customizations
 
