@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import PostgresDsn
+from pydantic import DirectoryPath, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,7 +9,8 @@ class Settings(BaseSettings):
 
     Unrelated keys in .env are ignored, so the file can be shared with other
     services (e.g. compose). database_url defaults to the throwaway local
-    database from compose.dev.yml; every other environment sets it.
+    database from compose.dev.yml; every other environment sets it. spa_dir is
+    the built frontend the app serves; it stays unset in dev, where Vite serves it.
     """
 
     model_config = SettingsConfigDict(
@@ -20,3 +21,4 @@ class Settings(BaseSettings):
     database_url: PostgresDsn = PostgresDsn(
         "postgresql+psycopg://tcg_pokedex:tcg_pokedex@localhost:5432/tcg_pokedex"
     )
+    spa_dir: DirectoryPath | None = None
