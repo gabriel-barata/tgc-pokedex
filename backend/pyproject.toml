@@ -3,13 +3,9 @@ name = "tcg-pokedex"
 version = "0.1.0"
 description = "Track which Pokémon TCG cards we own or are missing in each set."
 requires-python = ">=3.13"
-# One-line justification per dependency (constitution, Quality Gate 4).
 dependencies = [
-    # HTTP API framework whose OpenAPI schema drives the generated frontend client.
     "fastapi>=0.143.0",
-    # Typed, validated config from env vars: the single config source (Principle II).
     "pydantic-settings>=2.15.0",
-    # ASGI server that runs the app; [standard] adds uvloop/httptools and --reload.
     "uvicorn[standard]>=0.54.0",
 ]
 
@@ -19,15 +15,10 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    # Required by FastAPI's TestClient (Starlette deprecated httpx in favor of httpx2).
     "httpx2>=2.13.1",
-    # Strict static type checking (Quality Gate 3).
     "pyright>=1.1.414",
-    # Test runner.
     "pytest>=9.1.1",
-    # Branch coverage measurement and the coverage floor.
     "pytest-cov>=7.1.0",
-    # Linter and formatter (Quality Gate 3).
     "ruff>=0.17.0",
 ]
 
