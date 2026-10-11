@@ -78,6 +78,9 @@ Whole stack (run from the repo root; needs Docker):
 - `make migrate`: `make db`, then upgrade the dev database to the latest migration.
 - `make dev`: `make migrate`, then the backend and frontend dev servers; Ctrl-C stops both.
 - `make test`: backend tests with the coverage gate, then frontend tests.
+- `docker build -t tcg-pokedex .`: build the production image (`Dockerfile`). It serves the
+  SPA and the API on :8000, runs migrations on start and needs `TCG_POKEDEX_DATABASE_URL`,
+  e.g. `docker run --rm -p 8000:8000 -e TCG_POKEDEX_DATABASE_URL=… tcg-pokedex`.
 
 Backend (run from `backend/`; needs `uv`, which installs Python 3.13):
 
@@ -108,14 +111,17 @@ Frontend (run from `frontend/`; needs Node 26+ and pnpm, pinned in `package.json
 
 - `.github/workflows/ci.yml` runs on every PR and on push to `main`. Its jobs are `backend`,
   `frontend`, `openapi-drift` (fails when `pnpm generate:api` changes the committed files),
-  `shell-tests` and `commit-gates`. `.github/workflows/pr-title.yml` runs `pr-title`.
+  `shell-tests`, `commit-gates`, `image` (builds the production image and smoke-tests it
+  against Postgres) and `publish`. `publish` runs only on push to `main`, after every other
+  job passes, and pushes `ghcr.io/<owner>/tcg-pokedex:latest` and `:<full commit sha>`.
+  `.github/workflows/pr-title.yml` runs `pr-title`.
 - `commit-gates` fails a `feat`/`fix` commit that changes source with no `test` commit (one
   that changes test files) since the previous `feat`/`fix`. The source and test paths are
   listed in `.github/scripts/check-tdd-order.sh`; update them when a new source or test
   location appears.
-- The `main` ruleset requires a PR, squash merges only, and all six checks; it blocks force
-  pushes and deletion, with no bypass. `.github/rulesets/main.json` is its source: after
-  editing it, apply it with
+- The `main` ruleset requires a PR, squash merges only, and seven checks (every job above
+  except `publish`); it blocks force pushes and deletion, with no bypass.
+  `.github/rulesets/main.json` is its source: after editing it, apply it with
   `gh api --method PUT repos/{owner}/{repo}/rulesets/<id> --input .github/rulesets/main.json`
   (`gh api repos/{owner}/{repo}/rulesets` lists the id). A renamed CI job must be renamed
   in the ruleset in the same PR.
