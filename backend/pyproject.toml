@@ -1,0 +1,82 @@
+[project]
+name = "tcg-pokedex"
+version = "0.1.0"
+description = "Track which Pokémon TCG cards we own or are missing in each set."
+requires-python = ">=3.13"
+# One-line justification per dependency (constitution, Quality Gate 4).
+dependencies = [
+    # HTTP API framework whose OpenAPI schema drives the generated frontend client.
+    "fastapi>=0.143.0",
+    # Typed, validated config from env vars: the single config source (Principle II).
+    "pydantic-settings>=2.15.0",
+    # ASGI server that runs the app; [standard] adds uvloop/httptools and --reload.
+    "uvicorn[standard]>=0.54.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.22,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    # Required by FastAPI's TestClient (Starlette deprecated httpx in favor of httpx2).
+    "httpx2>=2.13.1",
+    # Strict static type checking (Quality Gate 3).
+    "pyright>=1.1.414",
+    # Test runner.
+    "pytest>=9.1.1",
+    # Branch coverage measurement and the coverage floor.
+    "pytest-cov>=7.1.0",
+    # Linter and formatter (Quality Gate 3).
+    "ruff>=0.17.0",
+]
+
+[tool.pytest]
+minversion = "9.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--import-mode=importlib"]
+strict = true
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+source = ["tcg_pokedex"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+[tool.ruff.lint]
+select = [
+    "E", "W",  # pycodestyle
+    "F",       # pyflakes
+    "I",       # isort
+    "UP",      # pyupgrade
+    "B",       # flake8-bugbear
+    "SIM",     # flake8-simplify
+    "RUF",     # ruff-specific
+    "N",       # pep8-naming
+    "PT",      # flake8-pytest-style
+    "S",       # flake8-bandit
+    "C4",      # flake8-comprehensions
+    "PL",      # pylint
+    "ARG",     # flake8-unused-arguments
+    "TID",     # flake8-tidy-imports
+    "ERA",     # eradicate (commented-out code)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use bare asserts and literal expected values (HTTP status codes, counts).
+"tests/**" = ["S101", "PLR2004"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tcg_pokedex"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.pyright]
+include = ["src", "tests"]
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
