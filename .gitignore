@@ -198,3 +198,5 @@ playwright/.auth/
 ### OS / tools ###
 .DS_Store
 .claude/settings.local.json
+
+.vscode
