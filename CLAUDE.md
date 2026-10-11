@@ -42,13 +42,13 @@ One card = one branch = one PR.
 
 ## Commits
 
-- Format: `type(PTCG-NNN): summary` (Conventional Commits, scoped with the ticket code).
+- Format: `type: summary` (Conventional Commits, scoped with the ticket code).
 - Types: `feat`, `fix`, `test`, `refactor`, `docs`, `chore`, `ci`, `build`.
 - Ordering of test and implementation commits: see Principle I in the constitution.
 
 ## Pull requests
 
-- Title: `type(PTCG-NNN): summary`. PRs are squash-merged, so the title becomes the commit on
+- Title: `[PTCG-NNN] summary`. PRs are squash-merged, so the title becomes the commit on
   `main`.
 - Body: follow `.github/pull_request_template.md`. `gh pr create --body …` does not apply the
   template, so build the body from it.

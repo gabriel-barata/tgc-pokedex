@@ -1,15 +1,15 @@
 <!--
-PR title: type(PTCG-NNN): summary. It becomes the squash commit on main.
+PR title: [PTCG-NNN] summary. It becomes the squash commit on main.
 In a section that does not apply, write "N/A" and the reason.
 -->
 
 ## Ticket
 
-PTCG-NNN · <Trello card link>
+[PTCG-NNN](Trello card link)
 
 ## Summary
 
--
+- bullet points for the different changes implemented, each bullet point MUST have a maximum of two lines
 
 ## spec-kit artifacts
 
@@ -33,7 +33,7 @@ Docs/config-only changes: "N/A — exempt (Principle I)" and why.
 
 ## Checklist
 
-- [ ] PR title follows `type(PTCG-NNN): summary`
+- [ ] PR title follows `[PTCG-NNN] summary`
 - [ ] `CLAUDE.md` updated if commands or workflow changed
 - [ ] Every new dependency has its one-line justification (Quality Gate 4)
 - [ ] Every skipped test references an issue
