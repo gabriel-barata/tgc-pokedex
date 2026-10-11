@@ -35,6 +35,7 @@
           { "context": "shell-tests", "integration_id": 15368 },
           { "context": "commit-gates", "integration_id": 15368 },
           { "context": "image", "integration_id": 15368 },
+          { "context": "e2e", "integration_id": 15368 },
           { "context": "pr-title", "integration_id": 15368 }
         ]
       }
