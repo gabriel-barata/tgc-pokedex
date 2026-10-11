@@ -24,6 +24,7 @@ Secrets live only in the `.env` files on the server (`chmod 600`), never in the 
   | --- | --- |
   | http://pokedex.mistoquente.de | `tcg-pokedex:8000` |
   | http://wud.mistoquente.de | `wud:3000` (login: `WUD_ADMIN_*` in `/srv/docker/wud/.env`) |
+  | http://npm.mistoquente.de | `npm:81`, the NPM admin UI |
 
 - Devices only resolve these names if they use Pi-hole for DNS. If the router also advertises
   itself as an IPv6 DNS server, devices ask it first and the names fail. Either point the
