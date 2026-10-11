@@ -248,11 +248,24 @@ test_skipped_fails_unreferenced_skips() {
     done
 }
 
+test_skipped_fails_unreferenced_playwright_annotations() {
+    local repo line
+    for line in 'test.fixme("later", async () => {});' 'test.fail("known bug", async () => {});' \
+        'test.describe.skip("later", () => {});' 'test.describe.fixme("later", () => {});' \
+        '  test.skip(isMobile, "desktop only");' 'it.fails("known bug", () => {});'; do
+        repo="$(new_repo)"
+        write_file "$repo" frontend/e2e/home.spec.ts $'import { test } from "./test.ts";\n\n'"$line"
+        expect_fail skipped_gate "$repo" || { echo "     line: $line"; return 1; }
+        expect_output "frontend/e2e/home.spec.ts:3" || return 1
+    done
+}
+
 test_skipped_passes_skips_referencing_a_ticket() {
     local repo
     repo="$(new_repo)"
     write_file "$repo" backend/tests/test_a.py $'import pytest\n\n@pytest.mark.skip(reason="PTCG-031: needs profiles")'
     write_file "$repo" frontend/src/A.test.ts 'it.skip("PTCG-031 shows the profile switcher", () => {});'
+    write_file "$repo" frontend/e2e/a.spec.ts 'test.fixme("PTCG-031 switches profiles", async () => {});'
     expect_pass skipped_gate "$repo"
 }
 
@@ -268,6 +281,7 @@ test_skipped_ignores_lookalike_names() {
     local repo
     repo="$(new_repo)"
     write_file "$repo" frontend/src/a.ts $'const audit = { skip: 1 };\nexport const x = edit.skipped + audit.skip;'
+    write_file "$repo" frontend/e2e/a.ts $'const contest = { fail: 1 };\nexport const y = contest.fail + latest.describe.skip;'
     write_file "$repo" backend/src/tcg_pokedex/a.py 'mypytest.skip_all = True'
     expect_pass skipped_gate "$repo"
 }
