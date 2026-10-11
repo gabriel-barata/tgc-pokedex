@@ -1,0 +1,47 @@
+name: tcg-pokedex
+
+services:
+  app:
+    image: ghcr.io/gabriel-barata/tcg-pokedex:${TCG_POKEDEX_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      TCG_POKEDEX_DATABASE_URL: postgresql+psycopg://tcg_pokedex:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/tcg_pokedex
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      default:
+      servicos_lan:
+        aliases:
+          - tcg-pokedex
+    labels:
+      - wud.watch=true
+      - wud.watch.digest=true
+      - wud.trigger.docker.autoupdate.enabled=true
+      - wud.rollback.enable=true
+      - wud.display.name=TCG Pokédex
+      - wud.link.template=https://github.com/gabriel-barata/tgc-pokedex/commits/main
+
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tcg_pokedex
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: tcg_pokedex
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tcg_pokedex -d tcg_pokedex"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    labels:
+      - wud.watch=false
+
+networks:
+  servicos_lan:
+    external: true
+
+volumes:
+  postgres-data:
