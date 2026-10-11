@@ -42,6 +42,13 @@ commit_files() {
     git_in "$repo" commit -q -m "$message"
 }
 
+write_file() {
+    mkdir -p "$1/$(dirname -- "$2")"
+    printf '%s\n' "$3" >"$1/$2"
+    git -C "$1" add -- "$2"
+    git_in "$1" commit -q -m "chore: add $2"
+}
+
 run_gate() {
     local repo="$1" script="$2"
     shift 2
@@ -50,6 +57,10 @@ run_gate() {
 
 tdd_gate() {
     run_gate "$1" check-tdd-order.sh main HEAD
+}
+
+skipped_gate() {
+    run_gate "$1" check-skipped-tests.sh
 }
 
 expect_pass() {
@@ -201,6 +212,59 @@ test_tdd_checks_only_commits_after_base() {
     commit_files "$repo" "test(PTCG-099): add failing test" backend/tests/test_b.py
     commit_files "$repo" "feat(PTCG-099): make it pass" backend/src/tcg_pokedex/b.py
     expect_pass tdd_gate "$repo"
+}
+
+test_skipped_passes_without_skips() {
+    local repo
+    repo="$(new_repo)"
+    write_file "$repo" backend/tests/test_a.py $'skipped = 0\n\ndef test_a():\n    assert skipped == 0'
+    write_file "$repo" frontend/src/A.test.tsx $'it("skips nothing", () => {\n  expect(skipList).toEqual([]);\n});'
+    expect_pass skipped_gate "$repo"
+}
+
+test_skipped_fails_unreferenced_skips() {
+    local repo line
+    for line in '@pytest.mark.skip(reason="flaky")' '@pytest.mark.skip' \
+        '@pytest.mark.skipif(sys.platform == "win32", reason="posix only")' \
+        '@pytest.mark.xfail(reason="known bug")' '    pytest.skip("not ready")' \
+        '@pytest.mark.parametrize("x", [pytest.param(1, marks=pytest.mark.skip)])'; do
+        repo="$(new_repo)"
+        write_file "$repo" backend/tests/test_a.py $'import pytest\n\n'"$line"
+        expect_fail skipped_gate "$repo" || { echo "     line: $line"; return 1; }
+        expect_output "backend/tests/test_a.py:3" || return 1
+    done
+    for line in 'it.skip("later", () => {});' 'test.skip("later", () => {});' \
+        'describe.skip("later", () => {});' 'it.skipIf(isCi)("later", () => {});' \
+        'it.todo("later");' '  test.todo("later");'; do
+        repo="$(new_repo)"
+        write_file "$repo" frontend/src/a/A.test.tsx $'import { it } from "vitest";\n\n'"$line"
+        expect_fail skipped_gate "$repo" || { echo "     line: $line"; return 1; }
+        expect_output "frontend/src/a/A.test.tsx:3" || return 1
+    done
+}
+
+test_skipped_passes_skips_referencing_a_ticket() {
+    local repo
+    repo="$(new_repo)"
+    write_file "$repo" backend/tests/test_a.py $'import pytest\n\n@pytest.mark.skip(reason="PTCG-031: needs profiles")'
+    write_file "$repo" frontend/src/A.test.ts 'it.skip("PTCG-031 shows the profile switcher", () => {});'
+    expect_pass skipped_gate "$repo"
+}
+
+test_skipped_ignores_non_code_files() {
+    local repo
+    repo="$(new_repo)"
+    write_file "$repo" CLAUDE.md 'Never leave an it.skip or @pytest.mark.skip without a ticket.'
+    write_file "$repo" .github/scripts/check-x.sh 'grep -E "pytest\.mark\.skip|it\.skip"'
+    expect_pass skipped_gate "$repo"
+}
+
+test_skipped_ignores_lookalike_names() {
+    local repo
+    repo="$(new_repo)"
+    write_file "$repo" frontend/src/a.ts $'const audit = { skip: 1 };\nexport const x = edit.skipped + audit.skip;'
+    write_file "$repo" backend/src/tcg_pokedex/a.py 'mypytest.skip_all = True'
+    expect_pass skipped_gate "$repo"
 }
 
 FAILURES=0
