@@ -57,6 +57,12 @@ One card = one branch = one PR.
 - On the ticket branch, Claude commits, pushes and opens the PR without asking each time.
   Claude's job ends when the PR is open: never push to `main`, never merge a PR.
 
+## Visual direction
+
+- `docs/design.md` sets the UI's visual direction (pillars, invariants, tokens, key
+  behaviors). Screens follow it; a PR that changes the direction updates it and adds a
+  revision-history entry. The mockups in `docs/design/mockups/` are reference only.
+
 ## Language
 
 - UI text: Brazilian Portuguese (pt-BR), with strings centralized per slice.

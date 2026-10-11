@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estados · TCG Pokédex mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="mockups.css">
+</head>
+<body data-active="sets" data-note="Mockup: empty, loading and error states">
+<main>
+  <h1 style="font:600 36px/40px var(--font-display);margin-bottom:24px">Estados</h1>
+  <div class="state-grid">
+    <section class="state-card">
+      <h2>Carregando / imagens sincronizando</h2>
+      <div class="binder-page">
+        <p class="loading-line"><svg class="bob" aria-hidden="true"><use href="#crest"/></svg> Carregando cartas…</p>
+        <div class="grid skeleton" aria-busy="true" aria-label="Carregando cartas">
+          <div class="tile"><div class="sleeve"></div><div class="bar" style="width:40%"></div><div class="bar" style="width:70%"></div></div>
+          <div class="tile"><div class="sleeve"></div><div class="bar" style="width:40%"></div><div class="bar" style="width:60%"></div></div>
+          <div class="tile"><div class="sleeve"></div><div class="bar" style="width:40%"></div><div class="bar" style="width:75%"></div></div>
+        </div>
+      </div>
+    </section>
+    <section class="state-card">
+      <h2>Filtro sem resultado</h2>
+      <div class="binder-page state-body">
+        <div class="msg">
+          <svg class="mascot" aria-hidden="true"><use href="#bubble"/></svg>
+          <h3>Nenhuma carta encontrada</h3>
+          <p>Nenhuma carta corresponde a “Faltando · Rara Dupla”.</p>
+          <button class="btn">Limpar filtros</button>
+        </div>
+      </div>
+    </section>
+    <section class="state-card">
+      <h2>Nenhuma coleção acompanhada</h2>
+      <div class="binder-page state-body">
+        <div class="msg">
+          <div style="display:flex;gap:4px"><svg class="mascot" aria-hidden="true"><use href="#crest"/></svg><svg class="mascot" aria-hidden="true"><use href="#bubble"/></svg></div>
+          <h3>Nenhuma coleção acompanhada</h3>
+          <p>Acompanhe uma coleção para ver as cartas e marcar as que possui.</p>
+          <button class="btn btn-primary">Ver todas as coleções</button>
+        </div>
+      </div>
+    </section>
+    <section class="state-card">
+      <h2>Erro</h2>
+      <div class="binder-page state-body">
+        <div class="msg" role="alert">
+          <svg class="mascot" aria-hidden="true"><use href="#bubble-flat"/></svg>
+          <h3>Não foi possível carregar as cartas.</h3>
+          <p class="err">O servidor não respondeu.</p>
+          <button class="btn">Tentar novamente</button>
+        </div>
+      </div>
+    </section>
+    <section class="state-card">
+      <h2>Imagem indisponível</h2>
+      <div class="binder-page">
+        <div class="grid" style="grid-template-columns:repeat(3,minmax(0,168px))">
+          <div class="tile">
+            <div class="sleeve" style="background:var(--surface-sunken);box-shadow:none">
+              <span class="empty-label"><span class="nm">Imagem indisponível</span></span>
+            </div>
+            <div class="tile-meta"><span class="no">047/159</span><span class="vs"><span class="dot on"></span><span class="dot"></span></span><span class="nm">Voltorb da Kissera</span></div>
+          </div>
+          <div class="tile">
+            <div class="sleeve missing"><span class="empty-label"><span class="n">048</span><span class="nm">Electrode da Kissera</span></span></div>
+            <div class="tile-meta"><span class="no">048/159</span><span class="vs"><span class="dot"></span><span class="dot"></span></span><span class="nm">Electrode da Kissera</span></div>
+          </div>
+        </div>
+        <p class="grid-foot">Solid border = we own it but the image is missing · dashed = missing card</p>
+      </div>
+    </section>
+  </div>
+</main>
+<script src="mockups.js"></script>
+</body>
+</html>
