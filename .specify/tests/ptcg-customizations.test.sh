@@ -110,6 +110,20 @@ test_feature_json_used_off_ticket_branch() {
     expect_eq "FEATURE_DIR" "$repo/specs/PTCG-010-old" "$(jq -r .FEATURE_DIR <<<"$out")"
 }
 
+test_tasks_template_makes_tests_mandatory() {
+    local repo out
+    repo="$(new_repo)"
+    out="$(run_in "$repo" resolve-template.sh tasks-template)" || { script_failed resolve-template.sh; return 1; }
+    expect_eq "optional-test wording in the tasks template" "" \
+        "$(grep -inE 'optional|if (tests )?requested|if included' <<<"$out")"
+}
+
+test_tasks_skill_makes_tests_mandatory() {
+    local skill="$SPECIFY_SRC/../.claude/skills/speckit-tasks/SKILL.md"
+    expect_eq "optional-test wording in the speckit-tasks skill" "" \
+        "$(grep -inE 'tests are optional|if (tests )?requested|if included' "$skill")"
+}
+
 FAILURES=0
 for test_name in $(declare -F | awk '{print $3}' | grep '^test_'); do
     if ("$test_name"); then
