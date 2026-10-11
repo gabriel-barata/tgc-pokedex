@@ -18,8 +18,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -170,9 +170,31 @@ poetry.toml
 # ruff
 .ruff_cache/
 
-# LSP config files
-pyrightconfig.json
-
 temp
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+### Node / pnpm / Vite ###
+node_modules/
+.pnpm-store/
+*.tsbuildinfo
+.eslintcache
+.vite/
+# Vite local env files (.env.local, .env.*.local)
+*.local
+
+### Vitest / Playwright ###
+coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+playwright/.auth/
+
+### Env files (the Python block only covers .env) ###
+.env.*
+!.env.example
+
+### OS / tools ###
+.DS_Store
+.claude/settings.local.json
