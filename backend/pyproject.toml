@@ -71,7 +71,7 @@ known-first-party = ["tcg_pokedex"]
 ban-relative-imports = "all"
 
 [tool.pyright]
-include = ["src", "tests"]
+include = ["src", "tests", "migrations"]
 typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"
