@@ -81,6 +81,9 @@ Whole stack (run from the repo root; needs Docker):
 - `docker build -t tcg-pokedex .`: build the production image (`Dockerfile`). It serves the
   SPA and the API on :8000, runs migrations on start and needs `TCG_POKEDEX_DATABASE_URL`,
   e.g. `docker run --rm -p 8000:8000 -e TCG_POKEDEX_DATABASE_URL=… tcg-pokedex`.
+- `deploy/`: the home-server stack (`compose.yml`) and WUD auto-update (`wud/`). The runbook
+  `deploy/README.md` covers install, rollback (pin `TCG_POKEDEX_IMAGE_TAG` to a commit sha)
+  and the expand/contract-only migration rule.
 
 Backend (run from `backend/`; needs `uv`, which installs Python 3.13):
 
