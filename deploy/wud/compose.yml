@@ -3,6 +3,7 @@ name: wud
 services:
   wud:
     image: getwud/wud:9.4.1
+    container_name: wud
     restart: unless-stopped
     environment:
       TZ: ${TZ:-America/Sao_Paulo}
@@ -10,22 +11,14 @@ services:
       WUD_AUTH_ADMIN_PASSWORD: ${WUD_ADMIN_PASSWORD:?set WUD_ADMIN_PASSWORD in .env}
       WUD_WATCHER_LOCAL_CRON: "*/5 * * * *"
       WUD_TRIGGER_DOCKER_AUTOUPDATE_INCLUDEBYDEFAULT: "false"
-      WUD_TRIGGER_NTFY_DEPLOY_URL: ${NTFY_URL:-https://ntfy.sh}
-      WUD_TRIGGER_NTFY_DEPLOY_TOPIC: ${NTFY_TOPIC:?set NTFY_TOPIC in .env}
-      WUD_TRIGGER_NTFY_DEPLOY_AUTO: "false"
-      WUD_TRIGGER_NTFY_DEPLOY_TAGS: whale
-      WUD_TRIGGER_NTFY_DEPLOY_SIMPLETITLE: "$${container.result.hook.phase === 'failure' ? 'Deploy FAILED for' : 'Deployed'} $${container.displayName}"
-      WUD_TRIGGER_NTFY_DEPLOY_SIMPLEBODY: "$${container.result.hook.phase === 'failure' ? 'Could not update to ' + container.updateKind.remoteValue + ', check the WUD logs' : 'Now running ' + container.updateKind.remoteValue}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - wud-store:/store
-    networks:
-      - proxy
 
 networks:
-  proxy:
+  default:
     external: true
-    name: ${PROXY_NETWORK:?set PROXY_NETWORK in .env}
+    name: servicos_lan
 
 volumes:
   wud-store:

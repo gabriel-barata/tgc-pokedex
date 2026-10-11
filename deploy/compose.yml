@@ -11,7 +11,7 @@ services:
         condition: service_healthy
     networks:
       default:
-      proxy:
+      servicos_lan:
         aliases:
           - tcg-pokedex
     labels:
@@ -19,12 +19,6 @@ services:
       - wud.watch.digest=true
       - wud.trigger.docker.autoupdate.enabled=true
       - wud.rollback.enable=true
-      - wud.hook.1.phase=post
-      - wud.hook.1.type=trigger
-      - wud.hook.1.trigger=ntfy.deploy
-      - wud.hook.2.phase=failure
-      - wud.hook.2.type=trigger
-      - wud.hook.2.trigger=ntfy.deploy
       - wud.display.name=TCG Pokédex
       - wud.link.template=https://github.com/gabriel-barata/tgc-pokedex/commits/main
 
@@ -46,9 +40,8 @@ services:
       - wud.watch=false
 
 networks:
-  proxy:
+  servicos_lan:
     external: true
-    name: ${PROXY_NETWORK:?set PROXY_NETWORK in .env}
 
 volumes:
   postgres-data:
