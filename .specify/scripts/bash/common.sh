@@ -87,6 +87,18 @@ get_current_branch() {
     echo ""
 }
 
+# PTCG customization: one card = one branch = one spec folder (see CLAUDE.md).
+# Prints the current git branch when it is a ticket branch (PTCG-NNN-<short-slug>),
+# whose spec folder is specs/<branch>/. Returns 1 on any other branch.
+get_ticket_branch() {
+    local repo_root="${1:-$(get_repo_root)}"
+    local pattern='^PTCG-[0-9]{3}-[a-z0-9][a-z0-9-]*$'
+    local branch
+    branch=$(git -C "$repo_root" branch --show-current 2>/dev/null) || return 1
+    [[ "$branch" =~ $pattern ]] || return 1
+    printf '%s\n' "$branch"
+}
+
 # Safely read .specify/feature.json's "feature_directory" value.
 # Prints the raw value (possibly relative) to stdout, or empty string if the file
 # is missing, unparseable, or does not contain the key. Always returns 0 so callers
@@ -186,9 +198,10 @@ get_feature_paths() {
 
     # Resolve feature directory.  Priority:
     #   1. SPECIFY_FEATURE_DIRECTORY env var (explicit override)
-    #   2. .specify/feature.json "feature_directory" key (persisted by specify command)
-    #   3. Error — no feature context available
-    local feature_dir
+    #   2. PTCG ticket branch → specs/<branch> (see get_ticket_branch)
+    #   3. .specify/feature.json "feature_directory" key (persisted by specify command)
+    #   4. Error — no feature context available
+    local feature_dir ticket_branch
     if [[ -n "${SPECIFY_FEATURE_DIRECTORY:-}" ]]; then
         feature_dir="$SPECIFY_FEATURE_DIRECTORY"
         # Normalize relative paths to absolute under repo root
@@ -198,6 +211,10 @@ get_feature_paths() {
         if [[ "$no_persist" != true ]]; then
             _persist_feature_json "$repo_root" "$SPECIFY_FEATURE_DIRECTORY"
         fi
+    elif ticket_branch=$(get_ticket_branch "$repo_root"); then
+        # The branch already names the feature, so feature.json is not consulted
+        # (it may still point at the ticket worked on before this one).
+        feature_dir="$repo_root/specs/$ticket_branch"
     elif [[ -f "$repo_root/.specify/feature.json" ]]; then
         local _fd
         _fd=$(read_feature_json_feature_directory "$repo_root")
