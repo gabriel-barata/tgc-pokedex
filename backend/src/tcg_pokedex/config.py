@@ -1,5 +1,6 @@
 from typing import Literal
 
+from pydantic import PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,7 +8,8 @@ class Settings(BaseSettings):
     """The app's single configuration source, read from TCG_POKEDEX_* env vars.
 
     Unrelated keys in .env are ignored, so the file can be shared with other
-    services (e.g. compose).
+    services (e.g. compose). database_url defaults to the throwaway local
+    database from compose.dev.yml; every other environment sets it.
     """
 
     model_config = SettingsConfigDict(
@@ -15,3 +17,6 @@ class Settings(BaseSettings):
     )
 
     environment: Literal["dev", "prod"] = "dev"
+    database_url: PostgresDsn = PostgresDsn(
+        "postgresql+psycopg://tcg_pokedex:tcg_pokedex@localhost:5432/tcg_pokedex"
+    )
