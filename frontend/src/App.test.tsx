@@ -20,7 +20,7 @@ describe("home page API health", () => {
   });
 
   it("shows the API as online when /healthz answers ok", async () => {
-    server.use(http.get("/healthz", () => HttpResponse.json({ status: "ok" })));
+    server.use(http.get("/healthz", () => HttpResponse.json({ status: "ok", database: "ok" })));
 
     renderWithProviders(<App />);
 
@@ -28,7 +28,10 @@ describe("home page API health", () => {
   });
 
   it.each([
-    ["an error status", () => new HttpResponse(null, { status: 503 })],
+    [
+      "503 because the database is unavailable",
+      () => HttpResponse.json({ status: "degraded", database: "unavailable" }, { status: 503 }),
+    ],
     ["a network error", () => HttpResponse.error()],
   ])("shows the API as unavailable when /healthz returns %s", async (_case, resolver) => {
     server.use(http.get("/healthz", resolver));
