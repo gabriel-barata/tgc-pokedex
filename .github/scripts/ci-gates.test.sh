@@ -63,6 +63,10 @@ skipped_gate() {
     run_gate "$1" check-skipped-tests.sh
 }
 
+title_gate() {
+    run_gate "$TMP_ROOT" check-pr-title.sh "$1"
+}
+
 expect_pass() {
     "$@" && return 0
     printf '     expected %s to pass, output:\n' "$1"
@@ -265,6 +269,23 @@ test_skipped_ignores_lookalike_names() {
     write_file "$repo" frontend/src/a.ts $'const audit = { skip: 1 };\nexport const x = edit.skipped + audit.skip;'
     write_file "$repo" backend/src/tcg_pokedex/a.py 'mypytest.skip_all = True'
     expect_pass skipped_gate "$repo"
+}
+
+test_title_passes_valid_titles() {
+    local title
+    for title in '[PTCG-006] CI pipeline, TDD-order gate & branch protection' '[PTCG-123] x'; do
+        expect_pass title_gate "$title" || { echo "     title: $title"; return 1; }
+    done
+}
+
+test_title_fails_invalid_titles() {
+    local title
+    for title in '' 'CI pipeline' 'PTCG-006 CI pipeline' '[PTCG-006]CI pipeline' '[PTCG-006] ' \
+        '[ptcg-006] CI pipeline' '[PTCG-06] CI pipeline' '[PTCG-0006] CI pipeline' \
+        'feat: [PTCG-006] CI pipeline' '[PTCG-006]: CI pipeline' $'[PTCG-006] CI\nmore'; do
+        expect_fail title_gate "$title" || { echo "     title: $title"; return 1; }
+        expect_output "[PTCG-NNN] summary" || return 1
+    done
 }
 
 FAILURES=0
