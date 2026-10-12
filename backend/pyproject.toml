@@ -61,8 +61,9 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# Tests use bare asserts and literal expected values (HTTP status codes, counts).
-"tests/**" = ["S101", "PLR2004"]
+# Tests use bare asserts and literal expected values (HTTP status codes, counts), and
+# builders take one keyword argument per field.
+"tests/**" = ["S101", "PLR2004", "PLR0913"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["tcg_pokedex"]
