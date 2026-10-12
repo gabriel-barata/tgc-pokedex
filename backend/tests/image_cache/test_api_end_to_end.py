@@ -117,6 +117,18 @@ def test_tracking_a_set_downloads_its_images_and_serves_them_locally(
     assert recorded_runs(database_url) == [("images", "succeeded")]
 
 
+def test_untracking_keeps_the_cached_images(client: TestClient) -> None:
+    client.put("/api/sets/sv01/tracking")
+
+    untracked = client.delete("/api/sets/sv01/tracking")
+    untracked_again = client.delete("/api/sets/sv01/tracking")
+
+    assert untracked.status_code == 200
+    assert untracked.json()["tracked"] is False
+    assert untracked_again.status_code == 200
+    assert client.get("/api/images/cards/sv01-001/small").status_code == 200
+
+
 @pytest.mark.parametrize(
     ("method", "path", "status"),
     [
@@ -126,6 +138,7 @@ def test_tracking_a_set_downloads_its_images_and_serves_them_locally(
         ("GET", "/api/images/sets/sv01/logo", 404),
         ("GET", "/api/sets/xy1/tracking", 404),
         ("PUT", "/api/sets/xy1/tracking", 404),
+        ("DELETE", "/api/sets/xy1/tracking", 404),
     ],
 )
 def test_unknown_or_uncached_resources_are_refused(

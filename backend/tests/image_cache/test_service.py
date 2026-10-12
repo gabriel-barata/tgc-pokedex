@@ -15,6 +15,7 @@ from tcg_pokedex.image_cache.fakes import (
     InMemoryImageStore,
 )
 from tcg_pokedex.image_cache.service import ImageSyncPorts, sync_images
+from tcg_pokedex.owners.domain import HOUSEHOLD_OWNER_ID
 from tcg_pokedex.sync_runs.domain import RunStatus, SyncRun
 from tcg_pokedex.sync_runs.fakes import InMemorySyncRunRepository
 
@@ -23,6 +24,7 @@ LATER = START + timedelta(hours=1)
 IMAGES = CardImages(small=b"small", large=b"large")
 PT_001 = "https://assets.tcgdex.net/pt/sv/sv01/001"
 PT_004 = "https://assets.tcgdex.net/pt/sv/sv01/004"
+PT_SV02 = "https://assets.tcgdex.net/pt/sv/sv02/001"
 EN_002 = "https://assets.tcgdex.net/en/sv/sv01/002"
 SV01_LOGO = "https://assets.tcgdex.net/pt/sv/sv01/logo"
 SERVER_ERROR = "HTTP 500 after 3 attempts"
@@ -47,9 +49,11 @@ class World:
         self.store = InMemoryImageStore()
         self.runs = InMemorySyncRunRepository()
 
-    def sync(self, at: datetime = START) -> SyncRun[ImageSyncResult]:
+    def sync(
+        self, at: datetime = START, set_id: str | None = "sv01"
+    ) -> SyncRun[ImageSyncResult]:
         ports = ImageSyncPorts(self.provider, self.store, self.repository, self.runs)
-        return sync_images(ports, FakeClock(at), set_id="sv01")
+        return sync_images(ports, FakeClock(at), set_id=set_id)
 
 
 def test_a_set_run_caches_pt_then_english_and_records_the_rest() -> None:
@@ -103,3 +107,16 @@ def test_an_unwritable_store_fails_the_run() -> None:
     assert run.error == "image directory is not writable"
     assert world.provider.requests == []
     assert world.runs.get_run(run.id, ImageSyncResult) == run
+
+
+def test_an_unscoped_run_downloads_cards_of_tracked_sets_only() -> None:
+    world = World()
+    world.repository.add_set("sv02")
+    world.repository.add_card("sv02-001", "sv02", PT_SV02)
+    world.repository.track(HOUSEHOLD_OWNER_ID, "sv01", START)
+
+    world.sync(set_id=None)
+
+    assert PT_001 in world.provider.requests
+    assert PT_SV02 not in world.provider.requests
+    assert "en/sv02-001" not in world.provider.requests
