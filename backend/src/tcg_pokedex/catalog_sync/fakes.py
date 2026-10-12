@@ -129,10 +129,6 @@ class InMemoryCatalogRepository:
         in_batch = batch.series is not None and batch.series.id == series_id
         if not in_batch and series_id not in self.series:
             raise InvalidBatchError(f"unknown series {series_id!r}")
-        if any(card.set_id != batch.card_set.id for card in batch.cards):
-            raise InvalidBatchError(
-                f"a card does not belong to set {batch.card_set.id!r}"
-            )
         if batch.series:
             self.series[batch.series.id] = Fetched(batch.series, fetched_at)
         self.sets[batch.card_set.id] = Fetched(batch.card_set, fetched_at)
