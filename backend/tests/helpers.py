@@ -11,11 +11,12 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import httpx2
 from sqlalchemy import Engine, insert
 
-from tcg_pokedex.tables import cards, series, sets
+from tcg_pokedex.tables import HOUSEHOLD_OWNER_ID, cards, ownership, series, sets
 from tcg_pokedex.tcgdex import SOURCE, Tcgdex
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -155,3 +156,19 @@ def seed(
                 connection.execute(
                     insert(table), [{**row, **provenance} for row in rows]
                 )
+
+
+def own(
+    engine: Engine,
+    card_id: str,
+    variant: str,
+    quantity: int,
+    owner_id: UUID = HOUSEHOLD_OWNER_ID,
+) -> None:
+    """Store an owner's quantity of one card variant, as the ownership routes would."""
+    with engine.begin() as connection:
+        connection.execute(
+            insert(ownership).values(
+                owner_id=owner_id, card_id=card_id, variant=variant, quantity=quantity
+            )
+        )

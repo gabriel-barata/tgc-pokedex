@@ -18,6 +18,7 @@ SCHEMA = {
     "tracked_sets",
     "card_images",
     "set_artwork",
+    "ownership",
 }
 
 

@@ -1,6 +1,6 @@
 """Set tracking routes on `create_app`, real Postgres and recorded TCGdex answers."""
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping, Sequence
 from datetime import date
 from pathlib import Path
 from uuid import UUID
@@ -14,7 +14,7 @@ from sqlalchemy import Engine, insert, select
 
 from tcg_pokedex.app import create_app
 from tcg_pokedex.config import Settings
-from tcg_pokedex.routes.sets import DownloadRegistry
+from tcg_pokedex.routes.sets import DownloadRegistry, card_ownership
 from tcg_pokedex.tables import (
     HOUSEHOLD_OWNER_ID,
     owners,
@@ -24,7 +24,7 @@ from tcg_pokedex.tables import (
     sync_runs,
     tracked_sets,
 )
-from tcg_pokedex.tcgdex import SOURCE
+from tcg_pokedex.tcgdex import SOURCE, Variant
 from tests.helpers import (
     SEEDED_AT,
     FixtureRoutes,
@@ -39,6 +39,7 @@ PT_001 = "https://assets.tcgdex.net/pt/sv/sv01/001"
 EN_002 = "https://assets.tcgdex.net/en/swsh/swshp/SWSH032"
 OTHER_OWNER_ID = UUID("00000000-0000-4000-8000-000000000002")
 PROVENANCE = {"source": SOURCE, "fetched_at": SEEDED_AT}
+N, R, H = Variant.NORMAL, Variant.REVERSE, Variant.HOLO
 
 
 @pytest.fixture
@@ -211,3 +212,35 @@ def test_sets_are_listed_by_series_newest_first_with_the_owners_tracking(
             ],
         },
     ]
+
+
+@pytest.mark.parametrize(
+    ("listed", "stored", "quantities", "owned", "wanted_version_missing"),
+    [
+        ([N, R], {}, [(N, 0), (R, 0)], False, False),
+        ([N], {N: 1}, [(N, 1)], True, False),
+        ([N, R], {N: 2}, [(N, 2), (R, 0)], True, True),
+        ([N, R], {R: 1}, [(N, 0), (R, 1)], True, False),
+        ([N, R], {N: 3, R: 1}, [(N, 3), (R, 1)], True, False),
+        ([H], {H: 1}, [(H, 1)], True, False),
+        ([N], {N: 1, R: 3}, [(N, 1)], True, False),
+    ],
+)
+def test_card_ownership_follows_the_rules_table(
+    listed: Sequence[Variant],
+    stored: Mapping[Variant, int],
+    quantities: list[tuple[Variant, int]],
+    owned: bool,
+    wanted_version_missing: bool,
+) -> None:
+    result = card_ownership("sv01-001", listed, stored)
+
+    assert result.model_dump(mode="json") == {
+        "card_id": "sv01-001",
+        "variants": [
+            {"variant": variant.value, "quantity": quantity}
+            for variant, quantity in quantities
+        ],
+        "owned": owned,
+        "wanted_version_missing": wanted_version_missing,
+    }
