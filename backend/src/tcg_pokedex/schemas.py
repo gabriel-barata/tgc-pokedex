@@ -90,6 +90,15 @@ class CardOwnership(BaseModel):
     wanted_version_missing: bool
 
 
+class SetOwnership(BaseModel):
+    """Every card of a set, by card id, with the owner's quantities and flags."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    set_id: str
+    cards: list[CardOwnership]
+
+
 class QuantityUpdate(BaseModel):
     """The number of copies to record for one variant of a card."""
 

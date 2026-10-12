@@ -41,6 +41,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sets/{set_id}/ownership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Ownership
+         * @description Every card of the set with the owner's quantity per variant and its flags.
+         */
+        get: operations["get_ownership_api_sets__set_id__ownership_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sets/{set_id}/tracking": {
         parameters: {
             query?: never;
@@ -249,6 +269,16 @@ export interface components {
             downloading: boolean;
         };
         /**
+         * SetOwnership
+         * @description Every card of a set, by card id, with the owner's quantities and flags.
+         */
+        SetOwnership: {
+            /** Set Id */
+            set_id: string;
+            /** Cards */
+            cards: components["schemas"]["CardOwnership"][];
+        };
+        /**
          * SetTracking
          * @description A set's tracking state for one owner, and its image progress.
          */
@@ -348,6 +378,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SeriesEntry"][];
+                };
+            };
+        };
+    };
+    get_ownership_api_sets__set_id__ownership_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetOwnership"];
+                };
+            };
+            /** @description The set is not in the catalog */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

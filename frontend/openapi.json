@@ -56,6 +56,49 @@
         }
       }
     },
+    "/api/sets/{set_id}/ownership": {
+      "get": {
+        "summary": "Get Ownership",
+        "description": "Every card of the set with the owner's quantity per variant and its flags.",
+        "operationId": "get_ownership_api_sets__set_id__ownership_get",
+        "parameters": [
+          {
+            "name": "set_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Set Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetOwnership"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The set is not in the catalog"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sets/{set_id}/tracking": {
       "get": {
         "summary": "Get Tracking",
@@ -630,6 +673,29 @@
         ],
         "title": "SetEntry",
         "description": "A set as one owner sees it. `has_logo` and `has_symbol` mean cached."
+      },
+      "SetOwnership": {
+        "properties": {
+          "set_id": {
+            "type": "string",
+            "title": "Set Id"
+          },
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/CardOwnership"
+            },
+            "type": "array",
+            "title": "Cards"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "set_id",
+          "cards"
+        ],
+        "title": "SetOwnership",
+        "description": "Every card of a set, by card id, with the owner's quantities and flags."
       },
       "SetTracking": {
         "properties": {

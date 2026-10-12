@@ -1,13 +1,14 @@
-"""Set routes: list every set, track and untrack one, and read its image progress."""
+"""Set routes: list every set, track and untrack one, read its image progress and
+the owner's ownership of its cards."""
 
 import threading
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
-from sqlalchemy import Engine, Exists, delete, exists, func, select
+from sqlalchemy import Engine, Exists, Row, and_, delete, exists, func, select
 from sqlalchemy.dialects import postgresql
 
 from tcg_pokedex.db import get_engine
@@ -16,6 +17,7 @@ from tcg_pokedex.schemas import (
     CardOwnership,
     SeriesEntry,
     SetEntry,
+    SetOwnership,
     SetTracking,
     Variant,
     VariantQuantity,
@@ -25,6 +27,7 @@ from tcg_pokedex.tables import (
     HOUSEHOLD_OWNER_ID,
     card_images,
     cards,
+    ownership,
     series,
     set_artwork,
     sets,
@@ -153,6 +156,29 @@ def card_ownership(
     )
 
 
+@router.get("/{set_id}/ownership", responses=UNKNOWN_SET)
+def get_ownership(set_id: str, owner_id: Owner, engine: DB) -> SetOwnership:
+    """Every card of the set with the owner's quantity per variant and its flags."""
+    _require_set(engine, set_id)
+    statement = (
+        select(cards.c.id, cards.c.variants, ownership.c.variant, ownership.c.quantity)
+        .select_from(
+            cards.outerjoin(
+                ownership,
+                and_(
+                    ownership.c.card_id == cards.c.id,
+                    ownership.c.owner_id == owner_id,
+                ),
+            )
+        )
+        .where(cards.c.set_id == set_id)
+        .order_by(cards.c.id)
+    )
+    with engine.connect() as connection:
+        rows = connection.execute(statement).all()
+    return SetOwnership(set_id=set_id, cards=_card_ownerships(rows))
+
+
 @router.get("/{set_id}/tracking", responses=UNKNOWN_SET)
 def get_tracking(
     set_id: str, owner_id: Owner, engine: DB, request: Request
@@ -203,6 +229,21 @@ def _has_artwork(kind: ArtworkKind) -> Exists:
     return exists().where(
         set_artwork.c.set_id == sets.c.id, set_artwork.c.kind == kind.value
     )
+
+
+def _card_ownerships(rows: Iterable[Row[*tuple[Any, ...]]]) -> list[CardOwnership]:
+    """Group `id, variants, variant, quantity` rows, ordered by card id, per card."""
+    listed: dict[str, list[Variant]] = {}
+    stored: dict[str, dict[Variant, int]] = {}
+    for row in rows:
+        listed.setdefault(row.id, [Variant(name) for name in row.variants])
+        quantities = stored.setdefault(row.id, {})
+        if row.variant is not None:
+            quantities[Variant(row.variant)] = row.quantity
+    return [
+        card_ownership(card_id, variants, stored[card_id])
+        for card_id, variants in listed.items()
+    ]
 
 
 def _require_set(engine: Engine, set_id: str) -> None:
