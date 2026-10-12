@@ -132,6 +132,11 @@ resume auto-updates.
 
 ## Migration rule: expand/contract only
 
+Migrations are plain SQL files in `backend/migrations/`, applied by `tcg migrate` (Atlas) when
+the container starts. The first start on a database Alembic built records the baseline
+migration as applied and runs nothing; the old `alembic_version` table stays, so a rollback to
+an image from before the switch still starts.
+
 A rollback, manual or automatic, swaps the image but cannot undo a schema change. The app runs
 its migrations on start, so by the time a rollback happens the new schema is already in place.
 Every migration must therefore keep the previous release working:
