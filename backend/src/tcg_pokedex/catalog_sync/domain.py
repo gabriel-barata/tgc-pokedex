@@ -4,7 +4,8 @@ Pure: no I/O and no clock. The run record and its result are Pydantic models so 
 shape is defined once and validated both when written and when read.
 """
 
-from collections.abc import Mapping
+from collections import Counter
+from collections.abc import Mapping, Sequence, Set
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from enum import StrEnum
@@ -184,3 +185,120 @@ class SyncRun(_Model):
     @classmethod
     def _in_utc(cls, value: datetime | None) -> datetime | None:
         return value.astimezone(UTC) if value is not None else None
+
+
+class Change(StrEnum):
+    CREATED = "created"
+    UPDATED = "updated"
+    UNCHANGED = "unchanged"
+
+
+def classify[T](stored: T | None, fetched: T) -> Change:
+    """Compare every entity field. Source and fetched-at are not entity fields."""
+    if stored is None:
+        return Change.CREATED
+    return Change.UNCHANGED if stored == fetched else Change.UPDATED
+
+
+@dataclass(frozen=True)
+class SetChanges:
+    """How one set's write changes the store. `series` is None when not written."""
+
+    series: Change | None
+    card_set: Change
+    cards: tuple[Change, ...]
+
+
+def plan_set(
+    stored: StoredCatalog,
+    listing: SetListing,
+    cards: Sequence[Card],
+    series_written: Set[str],
+) -> tuple[SetBatch, SetChanges]:
+    """Build one set's write and classify each row against what is stored.
+
+    The series is written and counted only when the run first stores one of its sets.
+    """
+    write_series = listing.series.id not in series_written
+    series_change = (
+        classify(stored.series and stored.series.value, listing.series)
+        if write_series
+        else None
+    )
+    batch = SetBatch(
+        series=listing.series if write_series else None,
+        card_set=listing.card_set,
+        cards=tuple(cards),
+    )
+    changes = SetChanges(
+        series=series_change,
+        card_set=classify(stored.card_set and stored.card_set.value, listing.card_set),
+        cards=tuple(
+            classify(
+                stored.cards[card.id].value if card.id in stored.cards else None, card
+            )
+            for card in cards
+        ),
+    )
+    return batch, changes
+
+
+class ResultBuilder:
+    """Collects a run's counts and failures, and decides its status."""
+
+    def __init__(self) -> None:
+        self._series: Counter[Change] = Counter()
+        self._sets: Counter[Change] = Counter()
+        self._cards: Counter[Change] = Counter()
+        self._skipped_sets = 0
+        self._failed: Counter[str] = Counter()
+        self._failures: list[Failure] = []
+        self._aborted = False
+
+    def record(self, changes: SetChanges) -> None:
+        if changes.series is not None:
+            self._series[changes.series] += 1
+        self._sets[changes.card_set] += 1
+        self._cards.update(changes.cards)
+
+    def skip_set(self) -> None:
+        self._skipped_sets += 1
+
+    def fail(self, failure: Failure) -> None:
+        """Count every failure; keep only the first `MAX_FAILURES` of them."""
+        self._failed[failure.kind] += 1
+        if len(self._failures) < MAX_FAILURES:
+            self._failures.append(failure)
+
+    def abort(self) -> None:
+        self._aborted = True
+
+    def status(self) -> RunStatus:
+        if self._aborted:
+            return RunStatus.FAILED
+        return RunStatus.PARTIAL if self._failed.total() else RunStatus.SUCCEEDED
+
+    def build(self) -> SyncResult:
+        return SyncResult(
+            counts=SyncCounts(
+                series=KindCounts(**_change_counts(self._series)),
+                sets=SetCounts(
+                    **_change_counts(self._sets),
+                    skipped=self._skipped_sets,
+                    failed=self._failed["set"],
+                ),
+                cards=CardCounts(
+                    **_change_counts(self._cards), failed=self._failed["card"]
+                ),
+            ),
+            failures=tuple(self._failures),
+        )
+
+
+def _change_counts(changes: Counter[Change]) -> dict[str, int]:
+    return {
+        "fetched": changes.total(),
+        "created": changes[Change.CREATED],
+        "updated": changes[Change.UPDATED],
+        "unchanged": changes[Change.UNCHANGED],
+    }
