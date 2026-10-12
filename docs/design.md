@@ -379,7 +379,7 @@ Warmth comes from the visuals, not from the copy. Mascots never speak. Copy neve
 pressures: no "apenas 3 restantes!", "raro!" or "valorizou". Errors are kind and
 actionable: "Não foi possível carregar as cartas. Tentar novamente".
 
-The wording here is illustrative. The final strings live in each slice's `strings.ts`.
+The wording here is illustrative. The final strings live in `frontend/src/strings/`.
 
 **Rejected:** a warm "nós" voice ("Nossos fichários", "Ainda não temos"); a mascot
 narrator.

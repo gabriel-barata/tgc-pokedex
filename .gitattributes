@@ -1,2 +1,2 @@
 frontend/openapi.json linguist-generated=true
-frontend/src/api-schema.gen.ts linguist-generated=true
+frontend/src/api/schema.gen.ts linguist-generated=true

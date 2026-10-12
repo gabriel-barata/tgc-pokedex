@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "../api-client.ts";
-import type { components } from "../api-schema.gen.ts";
+import { api } from "@/api/client.ts";
+import type { components } from "@/api/schema.gen.ts";
 
 export type SyncRunEntry = components["schemas"]["SyncRunEntry"];
 

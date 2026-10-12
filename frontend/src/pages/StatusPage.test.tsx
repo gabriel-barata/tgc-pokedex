@@ -2,11 +2,11 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { components } from "../api-schema.gen.ts";
-import { App } from "../App.tsx";
-import { server } from "../test-server.ts";
-import { renderWithProviders } from "../test-utils.tsx";
-import { statusStrings } from "./strings.ts";
+import type { components } from "@/api/schema.gen.ts";
+import { App } from "@/App.tsx";
+import { server } from "@/testing/server.ts";
+import { renderWithProviders } from "@/testing/render.tsx";
+import { statusStrings } from "@/strings/status.ts";
 
 type SyncRunEntry = components["schemas"]["SyncRunEntry"];
 type SyncStatus = components["schemas"]["SyncStatus"];

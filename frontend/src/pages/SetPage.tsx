@@ -1,7 +1,7 @@
 import { useParams } from "react-router";
-import { NotFoundPage } from "../shell/NotFoundPage.tsx";
-import { PlaceholderPage } from "../shell/PlaceholderPage.tsx";
-import { useSets } from "./use-sets.ts";
+import { NotFoundPage } from "@/pages/NotFoundPage.tsx";
+import { PlaceholderPage } from "@/components/layout/PlaceholderPage.tsx";
+import { useSets } from "@/api/sets.ts";
 
 export function SetPage() {
   const { setId } = useParams();

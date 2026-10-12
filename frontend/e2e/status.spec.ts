@@ -1,4 +1,4 @@
-import { statusStrings } from "../src/status/strings.ts";
+import { statusStrings } from "../src/strings/status.ts";
 import { expect, test } from "./test.ts";
 
 test("the status page lists the sync runs and a run's failures", async ({ page }) => {

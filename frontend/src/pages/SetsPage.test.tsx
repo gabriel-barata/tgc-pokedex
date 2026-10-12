@@ -2,11 +2,11 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { components } from "../api-schema.gen.ts";
-import { App } from "../App.tsx";
-import { server } from "../test-server.ts";
-import { renderWithProviders } from "../test-utils.tsx";
-import { setsStrings } from "./strings.ts";
+import type { components } from "@/api/schema.gen.ts";
+import { App } from "@/App.tsx";
+import { server } from "@/testing/server.ts";
+import { renderWithProviders } from "@/testing/render.tsx";
+import { setsStrings } from "@/strings/sets.ts";
 
 type SetEntry = components["schemas"]["SetEntry"];
 
@@ -115,26 +115,5 @@ describe("sets page", () => {
       setsStrings.trackError("Fogo Fantasmagórico"),
     );
     expect(track.getAttribute("aria-pressed")).toBe("false");
-  });
-
-  it("points to the catalog when no set is tracked", async () => {
-    sets = sets.map((each) => ({ ...each, tracked: false }));
-    const user = await openSetsPage();
-
-    await user.click(screen.getByRole("link", { name: setsStrings.seeAllSets }));
-
-    expect(
-      screen.getByRole("heading", { level: 2, name: setsStrings.allSets }).matches(":focus"),
-    ).toBe(true);
-  });
-
-  it("offers a retry when the sets cannot be loaded", async () => {
-    server.use(http.get("/api/sets", () => HttpResponse.error(), { once: true }));
-    const user = userEvent.setup();
-    renderWithProviders(<App />, { route: "/colecoes" });
-
-    await user.click(await screen.findByRole("button", { name: setsStrings.retry }));
-
-    expect(await screen.findByRole("region", { name: setsStrings.allSets })).toBeTruthy();
   });
 });

@@ -1,15 +1,15 @@
-import { shellStrings } from "../src/shell/strings.ts";
+import { layoutStrings } from "../src/strings/layout.ts";
 import { expect, test } from "./test.ts";
 
 test("keyboard users move through the top bar in reading order", async ({ page }) => {
   await page.goto("/");
 
   const stops = [
-    page.getByRole("link", { name: shellStrings.skipToContent }),
-    page.getByRole("link", { name: shellStrings.home }),
-    page.getByRole("searchbox", { name: shellStrings.searchLabel }),
-    page.getByRole("link", { name: shellStrings.collections, exact: true }),
-    page.getByRole("link", { name: shellStrings.status, exact: true }),
+    page.getByRole("link", { name: layoutStrings.skipToContent }),
+    page.getByRole("link", { name: layoutStrings.home }),
+    page.getByRole("searchbox", { name: layoutStrings.searchLabel }),
+    page.getByRole("link", { name: layoutStrings.collections, exact: true }),
+    page.getByRole("link", { name: layoutStrings.status, exact: true }),
   ];
   for (const stop of stops) {
     await page.keyboard.press("Tab");
@@ -20,16 +20,16 @@ test("keyboard users move through the top bar in reading order", async ({ page }
 test("the main navigation opens the Coleções page", async ({ page }) => {
   await page.goto("/");
 
-  await page.getByRole("link", { name: shellStrings.collections, exact: true }).click();
+  await page.getByRole("link", { name: layoutStrings.collections, exact: true }).click();
 
   await expect(page).toHaveURL("/colecoes");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(shellStrings.collections);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(layoutStrings.collections);
 });
 
 test("submitting the search keeps the current page", async ({ page }) => {
   await page.goto("/status");
 
-  const search = page.getByRole("searchbox", { name: shellStrings.searchLabel });
+  const search = page.getByRole("searchbox", { name: layoutStrings.searchLabel });
   await search.fill("Torchic");
   await search.press("Enter");
 
@@ -58,23 +58,23 @@ test.describe("on a phone", () => {
 
   test("the menu button reveals the navigation links", async ({ page }) => {
     await page.goto("/colecoes");
-    const statusLink = page.getByRole("link", { name: shellStrings.status });
+    const statusLink = page.getByRole("link", { name: layoutStrings.status });
     await expect(statusLink).toBeHidden();
 
-    await page.getByRole("button", { name: shellStrings.menu }).click();
+    await page.getByRole("button", { name: layoutStrings.menu }).click();
     await statusLink.click();
 
     await expect(page).toHaveURL("/status");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(shellStrings.status);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(layoutStrings.status);
     await expect(statusLink).toBeHidden();
   });
 
   test("the search button reveals the search field", async ({ page }) => {
     await page.goto("/");
-    const search = page.getByRole("searchbox", { name: shellStrings.searchLabel });
+    const search = page.getByRole("searchbox", { name: layoutStrings.searchLabel });
     await expect(search).toBeHidden();
 
-    await page.getByRole("button", { name: shellStrings.openSearch }).click();
+    await page.getByRole("button", { name: layoutStrings.openSearch }).click();
 
     await expect(search).toBeFocused();
   });

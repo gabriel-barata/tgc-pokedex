@@ -1,6 +1,6 @@
 import { Outlet } from "react-router";
-import { shellStrings } from "./strings.ts";
-import { TopBar } from "./TopBar.tsx";
+import { layoutStrings } from "@/strings/layout.ts";
+import { TopBar } from "@/components/layout/TopBar.tsx";
 
 const mainId = "conteudo";
 
@@ -11,7 +11,7 @@ export function AppShell() {
         href={`#${mainId}`}
         className="sr-only z-30 rounded-pill bg-surface-raised px-4 py-2 shadow-md focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
       >
-        {shellStrings.skipToContent}
+        {layoutStrings.skipToContent}
       </a>
       <TopBar />
       <main

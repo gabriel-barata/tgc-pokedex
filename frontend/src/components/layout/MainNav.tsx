@@ -1,9 +1,9 @@
 import { NavLink } from "react-router";
-import { shellStrings } from "./strings.ts";
+import { layoutStrings } from "@/strings/layout.ts";
 
 const links = [
-  { to: "/colecoes", label: shellStrings.collections },
-  { to: "/status", label: shellStrings.status },
+  { to: "/colecoes", label: layoutStrings.collections },
+  { to: "/status", label: layoutStrings.status },
 ] as const;
 
 export function MainNav({
@@ -18,7 +18,7 @@ export function MainNav({
   return (
     <nav
       id={id}
-      aria-label={shellStrings.mainNav}
+      aria-label={layoutStrings.mainNav}
       data-open={open || undefined}
       className="hidden shrink-0 lg:flex lg:items-center lg:gap-5 max-lg:absolute max-lg:top-full max-lg:right-4 max-lg:mt-2 max-lg:min-w-56 max-lg:flex-col max-lg:rounded-lg max-lg:border max-lg:border-border-hairline max-lg:bg-surface-raised max-lg:p-2 max-lg:shadow-lg data-open:max-lg:flex sm:max-lg:right-8"
     >

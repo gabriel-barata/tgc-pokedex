@@ -1,11 +1,11 @@
 import { Menu, Search } from "lucide-react";
 import { useCallback, useId, useRef, useState } from "react";
-import { Button } from "../ui/button.tsx";
-import { Brand } from "./Brand.tsx";
-import { CardSearch } from "./CardSearch.tsx";
-import { MainNav } from "./MainNav.tsx";
-import { shellStrings } from "./strings.ts";
-import { useDismiss } from "./use-dismiss.ts";
+import { Button } from "@/ui/button.tsx";
+import { Brand } from "@/components/layout/Brand.tsx";
+import { CardSearch } from "@/components/layout/CardSearch.tsx";
+import { MainNav } from "@/components/layout/MainNav.tsx";
+import { layoutStrings } from "@/strings/layout.ts";
+import { useDismiss } from "@/components/layout/use-dismiss.ts";
 
 type Disclosure = "menu" | "search" | null;
 
@@ -42,7 +42,7 @@ export function TopBar() {
           variant="ghost"
           size="icon"
           className="ml-auto sm:hidden"
-          aria-label={shellStrings.openSearch}
+          aria-label={layoutStrings.openSearch}
           aria-expanded={open === "search"}
           aria-controls={searchId}
           onClick={() => {
@@ -57,7 +57,7 @@ export function TopBar() {
           variant="ghost"
           size="icon"
           className="lg:hidden"
-          aria-label={shellStrings.menu}
+          aria-label={layoutStrings.menu}
           aria-expanded={open === "menu"}
           aria-controls={navId}
           onClick={() => {

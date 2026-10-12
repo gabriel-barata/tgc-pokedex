@@ -81,7 +81,7 @@ jobs:
       - run: pnpm generate:api
         working-directory: frontend
       - name: Fail if the generated API client is out of date
-        run: git diff --exit-code -- frontend/openapi.json frontend/src/api-schema.gen.ts
+        run: git diff --exit-code -- frontend/openapi.json frontend/src/api/schema.gen.ts
 
   shell-tests:
     name: shell-tests

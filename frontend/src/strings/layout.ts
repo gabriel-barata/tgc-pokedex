@@ -1,4 +1,4 @@
-export const shellStrings = {
+export const layoutStrings = {
   skipToContent: "Pular para o conteúdo",
   home: "TCG Pokédex, início",
   wordmarkAccent: "TCG",
