@@ -172,6 +172,9 @@ poetry.toml
 
 temp
 
+### spec-kit artifacts stay local ###
+/specs/
+
 # End of https://www.toptal.com/developers/gitignore/api/python
 
 ### Node / pnpm / Vite ###
