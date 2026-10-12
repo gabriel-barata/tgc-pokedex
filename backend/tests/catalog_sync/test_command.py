@@ -3,7 +3,7 @@
 import json
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx2
@@ -177,3 +177,51 @@ def test_the_run_start_and_end_are_logged_as_json_lines(
     assert run.result is not None
     assert finished["counts"] == run.result.counts.model_dump(mode="json")
     assert finished["error"] is None
+
+
+def without_fetch_time(table: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {
+        row_id: {
+            column: value for column, value in row.items() if column != "fetched_at"
+        }
+        for row_id, row in table.items()
+    }
+
+
+def test_a_second_run_changes_nothing_but_the_fetch_time(
+    capsys: pytest.CaptureFixture[str], database_url: str, engine: Engine
+) -> None:
+    clock = FakeClock(START)
+    sync(capsys, database_url, clock=clock)
+    first = [
+        rows(engine, table) for table in (tables.series, tables.sets, tables.cards)
+    ]
+    clock.advance(timedelta(hours=1))
+
+    outcome = sync(capsys, database_url, clock=clock)
+
+    assert outcome.exit_code == 0
+    run = outcome.run
+    assert run.result is not None
+    counts = run.result.counts
+    for kind in (counts.series, counts.sets, counts.cards):
+        assert (kind.created, kind.updated) == (0, 0)
+        assert kind.unchanged == kind.fetched
+    assert (counts.series.fetched, counts.sets.fetched, counts.cards.fetched) == (
+        3,
+        4,
+        14,
+    )
+    second = [
+        rows(engine, table) for table in (tables.series, tables.sets, tables.cards)
+    ]
+    assert [without_fetch_time(table) for table in second] == [
+        without_fetch_time(table) for table in first
+    ]
+    for table in second:
+        for row in table.values():
+            assert row["fetched_at"] == START + timedelta(hours=1)
+    with engine.connect() as connection:
+        runs = connection.execute(select(tables.sync_runs)).mappings().all()
+    assert len(runs) == 2
+    assert all(row["finished_at"] is not None for row in runs)

@@ -255,3 +255,93 @@ def test_the_run_start_and_end_are_logged(caplog: pytest.LogCaptureFixture) -> N
         "counts": run.result.counts.model_dump(mode="json"),
         "error": None,
     }
+
+
+LATER = START + timedelta(hours=1)
+
+
+def sv01_only(cards: Sequence[Card] = SV01_CARDS) -> InMemoryCatalogProvider:
+    provider = InMemoryCatalogProvider()
+    provider.add_set(
+        make_listing(card_set=SV01, card_ids=[card.id for card in cards]), cards
+    )
+    return provider
+
+
+def test_a_second_run_over_the_same_data_reports_everything_unchanged() -> None:
+    repository = InMemoryCatalogRepository()
+    sync_catalog(catalog(), repository, FakeClock(START))
+
+    run = sync_catalog(catalog(), repository, FakeClock(LATER))
+
+    assert run.status is RunStatus.SUCCEEDED
+    assert run.result is not None
+    assert run.result.counts.series == KindCounts(
+        fetched=2, created=0, updated=0, unchanged=2
+    )
+    assert run.result.counts.sets == SetCounts(
+        fetched=3, created=0, updated=0, unchanged=3, skipped=1, failed=0
+    )
+    assert run.result.counts.cards == CardCounts(
+        fetched=4, created=0, updated=0, unchanged=4, failed=0
+    )
+    stamps = {
+        stored.fetched_at
+        for rows in (repository.series, repository.sets, repository.cards)
+        for stored in rows.values()
+    }
+    assert stamps == {LATER}
+
+
+def test_a_card_renamed_at_the_provider_is_updated() -> None:
+    repository = InMemoryCatalogRepository()
+    sync_catalog(sv01_only(), repository, FakeClock(START))
+    renamed = make_card(name="Pineco Renomeado")
+
+    run = sync_catalog(
+        sv01_only([renamed, SV01_CARDS[1]]), repository, FakeClock(LATER)
+    )
+
+    assert repository.cards["sv01-001"] == Fetched(renamed, LATER)
+    assert run.result is not None
+    assert run.result.counts.cards == CardCounts(
+        fetched=2, created=0, updated=1, unchanged=1, failed=0
+    )
+
+
+def test_rows_the_provider_no_longer_lists_are_left_as_they_were() -> None:
+    repository = InMemoryCatalogRepository()
+    sync_catalog(catalog(), repository, FakeClock(START))
+    before = dict(repository.cards)
+
+    sync_catalog(sv01_only(SV01_CARDS[:1]), repository, FakeClock(LATER))
+
+    assert repository.cards["sv01-002"] == before["sv01-002"]
+    assert repository.sets["sv02"] == Fetched(SV02, START)
+    assert repository.sets["xy0"] == Fetched(XY0, START)
+    assert repository.cards["sv02-001"] == before["sv02-001"]
+    assert repository.series["xy"] == Fetched(XY, START)
+
+
+def test_a_set_that_now_lists_no_cards_is_skipped_and_left_untouched() -> None:
+    repository = InMemoryCatalogRepository()
+    sync_catalog(sv01_only(), repository, FakeClock(START))
+    before = (dict(repository.series), dict(repository.sets), dict(repository.cards))
+
+    run = sync_catalog(sv01_only([]), repository, FakeClock(LATER))
+
+    assert run.result is not None
+    assert run.result.counts.sets.skipped == 1
+    assert run.result.counts.sets.fetched == 0
+    assert (repository.series, repository.sets, repository.cards) == before
+
+
+def test_a_series_seen_again_counts_as_unchanged_once() -> None:
+    repository = InMemoryCatalogRepository()
+    sync_catalog(catalog(), repository, FakeClock(START))
+
+    run = sync_catalog(catalog(), repository, FakeClock(LATER))
+
+    assert run.result is not None
+    assert run.result.counts.series.unchanged == 2
+    assert repository.series["sv"] == Fetched(SV, LATER)

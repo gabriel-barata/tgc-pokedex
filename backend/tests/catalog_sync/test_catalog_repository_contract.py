@@ -225,3 +225,83 @@ def test_get_run_returns_the_error_of_a_failed_run(
 
 def test_get_run_of_an_unknown_id_is_none(repository: CatalogRepository) -> None:
     assert repository.get_run(uuid4()) is None
+
+
+def test_save_set_leaves_rows_outside_the_batch_untouched(
+    repository: CatalogRepository,
+) -> None:
+    repository.save_set(sv01_batch(), fetched_at=FETCHED_AT)
+    later = FETCHED_AT + timedelta(days=1)
+    sv02 = SetBatch(
+        series=make_series(),
+        card_set=make_set(id="sv02", name="Evoluções em Paldea"),
+        cards=(make_card(id="sv02-001", set_id="sv02", name="Sprigatito"),),
+    )
+    only_first_card = SetBatch(
+        series=None, card_set=make_set(), cards=(make_card(name="Pineco Novo"),)
+    )
+
+    repository.save_set(sv02, fetched_at=later)
+    repository.save_set(only_first_card, fetched_at=later)
+
+    untouched = make_card(id="sv01-002", collector_number="002", name="Heracross")
+    stored = repository.load_stored("sv", "sv01", ["sv01-001", "sv01-002"])
+    assert stored.cards["sv01-002"] == Fetched(untouched, FETCHED_AT)
+    assert stored.cards["sv01-001"] == Fetched(make_card(name="Pineco Novo"), later)
+
+
+def test_save_set_replaces_every_attribute_of_existing_rows(
+    repository: CatalogRepository,
+) -> None:
+    repository.save_set(
+        SetBatch(
+            series=make_series(),
+            card_set=make_set(),
+            cards=(make_card(variants=[Variant.NORMAL]),),
+        ),
+        fetched_at=FETCHED_AT,
+    )
+    later = FETCHED_AT + timedelta(days=1)
+    changed = SetBatch(
+        series=make_series(name="Scarlet & Violet"),
+        card_set=make_set(
+            name="Scarlet & Violet",
+            official_count=200,
+            total_count=260,
+            logo_url=None,
+            symbol_url="https://assets.tcgdex.net/univ/sv/sv01/symbol-2",
+        ),
+        cards=(
+            make_card(
+                collector_number="001a",
+                name="Pineco Novo",
+                rarity=None,
+                illustrator="Outro",
+                image_url=None,
+                variants=[Variant.NORMAL, Variant.REVERSE],
+            ),
+        ),
+    )
+
+    repository.save_set(changed, fetched_at=later)
+
+    stored = repository.load_stored("sv", "sv01", ["sv01-001"])
+    assert changed.series is not None
+    assert stored.series == Fetched(changed.series, later)
+    assert stored.card_set == Fetched(changed.card_set, later)
+    assert stored.cards == {"sv01-001": Fetched(changed.cards[0], later)}
+
+
+def test_saving_the_same_batch_again_only_moves_the_fetch_time(
+    repository: CatalogRepository,
+) -> None:
+    batch = sv01_batch()
+    later = FETCHED_AT + timedelta(hours=1)
+
+    repository.save_set(batch, fetched_at=FETCHED_AT)
+    repository.save_set(batch, fetched_at=later)
+
+    stored = repository.load_stored("sv", "sv01", ["sv01-001", "sv01-002"])
+    assert stored.series == Fetched(make_series(), later)
+    assert stored.card_set == Fetched(make_set(), later)
+    assert stored.cards == {card.id: Fetched(card, later) for card in batch.cards}
