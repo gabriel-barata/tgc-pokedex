@@ -9,7 +9,7 @@ from tcg_pokedex.catalog_sync.adapters.tcgdex_payloads import (
     parse_set,
     parse_set_ids,
 )
-from tcg_pokedex.catalog_sync.domain import Card, Series, SetListing, Variant
+from tcg_pokedex.catalog_sync.domain import Card, Failure, Series, SetListing, Variant
 from tests.catalog_sync.builders import make_card, make_set
 from tests.catalog_sync.tcgdex_fixtures import FIXTURES, SV01_CARD_IDS
 
@@ -32,13 +32,13 @@ def without(fixture_name: str, *keys: str) -> bytes:
 
 
 def parsed_set(content: bytes) -> SetListing:
-    listing = parse_set(content)
+    listing = parse_set(content, "requested-set")
     assert isinstance(listing, SetListing)
     return listing
 
 
 def parsed_card(content: bytes, set_id: str = "sv01") -> Card:
-    card = parse_card(content, set_id=set_id)
+    card = parse_card(content, "requested-card", set_id=set_id)
     assert isinstance(card, Card)
     return card
 
@@ -200,3 +200,95 @@ def test_the_card_belongs_to_the_set_being_synced() -> None:
     card = parsed_card(fixture("cards/sv01-001.json"), set_id="sv01-copy")
 
     assert card.set_id == "sv01-copy"
+
+
+def set_payload(**changes: object) -> dict[str, object]:
+    payload: dict[str, object] = json.loads(fixture("sets/sv01.json"))
+    payload.update(changes)
+    return payload
+
+
+def set_failure(payload: dict[str, object]) -> Failure:
+    outcome = parse_set(json.dumps(payload).encode(), "sv01")
+    assert isinstance(outcome, Failure)
+    return outcome
+
+
+def card_failure(content: bytes, card_id: str = "sv01-001") -> Failure:
+    outcome = parse_card(content, card_id, set_id="sv01")
+    assert isinstance(outcome, Failure)
+    return outcome
+
+
+def test_a_card_without_a_name_is_an_invalid_payload() -> None:
+    failure = card_failure(fixture("cards/fail01-001.json"), "fail01-001")
+
+    assert failure == Failure(
+        kind="card",
+        provider_id="fail01-001",
+        reason="invalid payload: name: Field required",
+    )
+
+
+@pytest.mark.parametrize("field", ["id", "localId", "name"])
+def test_a_card_missing_an_identifying_field_is_invalid(field: str) -> None:
+    failure = card_failure(without("cards/sv01-001.json", field))
+
+    assert failure.kind == "card"
+    assert failure.provider_id == "sv01-001"
+    assert failure.reason == f"invalid payload: {field}: Field required"
+
+
+def test_a_card_whose_name_is_blank_is_invalid() -> None:
+    failure = card_failure(edited("cards/sv01-001.json", name="   "))
+
+    assert failure.reason.startswith("invalid payload: name: ")
+
+
+def test_a_card_with_every_variant_flag_false_has_no_variants() -> None:
+    failure = card_failure(fixture("cards/fail01-002.json"), "fail01-002")
+
+    assert failure == Failure(
+        kind="card", provider_id="fail01-002", reason="no variants"
+    )
+
+
+def test_a_card_without_a_variants_object_has_no_variants() -> None:
+    failure = card_failure(without("cards/sv01-001.json", "variants"))
+
+    assert failure.reason == "no variants"
+
+
+def test_a_card_payload_that_is_not_json_is_invalid() -> None:
+    failure = card_failure(b"No available server")
+
+    assert failure.reason.startswith("invalid payload: ")
+
+
+@pytest.mark.parametrize("field", ["id", "name", "releaseDate", "serie", "cardCount"])
+def test_a_set_missing_a_required_field_is_invalid(field: str) -> None:
+    payload = set_payload()
+    del payload[field]
+
+    failure = set_failure(payload)
+
+    assert (failure.kind, failure.provider_id) == ("set", "sv01")
+    assert failure.reason == f"invalid payload: {field}: Field required"
+
+
+@pytest.mark.parametrize(
+    ("changes", "field"),
+    [
+        ({"serie": {"name": "Escarlate e Violeta"}}, "serie.id"),
+        ({"serie": {"id": "sv"}}, "serie.name"),
+        ({"cardCount": {"total": 258}}, "cardCount.official"),
+        ({"cardCount": {"official": 198}}, "cardCount.total"),
+        ({"cards": [{"localId": "001", "name": "Pineco"}]}, "cards.0.id"),
+    ],
+)
+def test_a_set_missing_a_nested_field_is_invalid(
+    changes: dict[str, object], field: str
+) -> None:
+    failure = set_failure(set_payload(**changes))
+
+    assert failure.reason == f"invalid payload: {field}: Field required"
