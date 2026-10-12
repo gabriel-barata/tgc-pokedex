@@ -11,18 +11,18 @@ In a section that does not apply, write "N/A" and the reason.
 
 - bullet points for the different changes implemented, each bullet point MUST have a maximum of two lines
 
-## spec-kit artifacts
+## Key decisions
 
 <!--
-spec-kit: yes → links to specs/PTCG-NNN-slug/spec.md, plan.md and tasks.md (and the /speckit-analyze result, if it ran).
-spec-kit: no  → "N/A — spec-kit: no".
+2–5 bullets: the decisions from the plan (or spec-kit spec/plan) a reviewer needs to know.
+Plans and specs stay local (temp/specs/, specs/), so don't link them.
 -->
 
 ## Constitution check
 
 - [ ] Complies with the constitution (`.specify/memory/constitution.md`)
-- Constitution Check in `plan.md` (spec-kit cards): <link, or N/A>
-- Deviations (Complexity Tracking in `plan.md`): <link, or "none">
+- Deviations (from the plan): <list, or "none">
+- Sync Impact (only when the constitution changes): <what changed, migration plan>
 
 ## Test evidence
 

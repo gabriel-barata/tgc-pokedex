@@ -144,6 +144,8 @@ The tasks.md should be immediately executable - each task must be specific enoug
 
 **Tests are MANDATORY** (constitution, Principles I and VI): generate test tasks for the main behaviours of each story (the happy path and the failure paths that matter), not for every edge case or scenario, each listed before the implementation task it covers. Group a behaviour's test task and implementation task so it lands as one `test:`/`feat:` commit pair.
 
+**Test list** (constitution, Principle VI): open `tasks.md` with a short `## Tests` section listing, per story, the tests the tasks will add (one line each). The user approves that list with the tasks; don't add test tasks beyond it. Stop once the 80% coverage floor is reachable.
+
 ### Checklist Format (REQUIRED)
 
 Every task MUST strictly follow this format:
