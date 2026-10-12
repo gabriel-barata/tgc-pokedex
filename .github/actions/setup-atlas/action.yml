@@ -1,0 +1,10 @@
+name: Set up Atlas
+description: Install the same Atlas binary the production image ships.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        container=$(docker create arigaio/atlas:latest-community@sha256:ff36c7ec43b3d4ab32ea980058b4682af9d3e95abdb81b63a25553fb80218156)
+        sudo docker cp "$container:/atlas" /usr/local/bin/atlas
+        docker rm "$container"

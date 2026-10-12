@@ -25,7 +25,13 @@ jobs:
         with:
           working-directory: backend
           enable-cache: true
+      - uses: ./.github/actions/setup-atlas
       - run: uv sync --locked
+      - run: atlas migrate validate --env local
+      - name: Fail if the models and the migrations disagree
+        run: |
+          atlas migrate diff --env local drift
+          test -z "$(git status --porcelain migrations)"
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pyright --warnings
