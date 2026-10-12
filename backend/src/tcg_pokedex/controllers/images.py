@@ -6,8 +6,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
 
-from tcg_pokedex.schemas import ArtworkKind, CardSize
-from tcg_pokedex.services.image_sync import artwork_path, card_path
+from tcg_pokedex.jobs.image_store import artwork_path, card_path
+from tcg_pokedex.views.images import ArtworkKind, CardSize
 
 CACHE_CONTROL = "public, max-age=604800"
 IMAGE: dict[int | str, dict[str, Any]] = {
