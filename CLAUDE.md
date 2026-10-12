@@ -31,9 +31,18 @@ One card = one branch = one PR.
 3. Create the branch named in the card's **Branch** field (`PTCG-NNN-<short-slug>`) from an
    up-to-date `main`.
 4. Then, depending on the card:
-   - **`spec-kit: yes`**: run the spec-kit flow, `/speckit-specify` → `/speckit-clarify` →
-     `/speckit-plan` → `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement`, on the
-     ticket branch. Spec-kit names the artifact folder after the branch,
+   - **`spec-kit: yes`**: first, in its own session, interview the user with the `grill-me`
+     skill and write the result to `temp/specs/PTCG-NNN-<short-slug>.md`. Keep both short:
+     - Interview: ask only about decisions that change the feature's behavior, one at a time,
+       with a recommended answer. Look facts up instead of asking. Leave implementation choices
+       (libraries, concurrency, file layout, fixtures) to `/speckit-plan`.
+     - Spec: what and why only: user stories with acceptance scenarios, functional
+       requirements, key entities, success criteria, out of scope. No provider surveys,
+       consumer maps, plan notes or decision log. It should read in a few minutes.
+
+     Then run the spec-kit flow on the ticket branch, feeding that file to
+     `/speckit-specify`: `/speckit-specify` → `/speckit-clarify` → `/speckit-plan` →
+     `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement`. Spec-kit names the artifact folder after the branch,
      `specs/PTCG-NNN-<short-slug>/`, and refuses to run `/speckit-specify` on any other
      branch. `/speckit-analyze` is required before implementing (constitution, Quality
      Gate 5).
@@ -89,7 +98,9 @@ Whole stack (run from the repo root; needs Docker):
   down. Needs Chromium once: `pnpm exec playwright install chromium` in `frontend/`.
 - `docker build -t tcg-pokedex .`: build the production image (`Dockerfile`). It serves the
   SPA and the API on :8000, runs migrations on start and needs `TCG_POKEDEX_DATABASE_URL`,
-  e.g. `docker run --rm -p 8000:8000 -e TCG_POKEDEX_DATABASE_URL=… tcg-pokedex`.
+  e.g. `docker run --rm -p 8000:8000 -e TCG_POKEDEX_DATABASE_URL=… tcg-pokedex`. Inside
+  it, `tcg sync catalog` runs the catalog sync (e.g. `docker run --rm -e
+  TCG_POKEDEX_DATABASE_URL=… tcg-pokedex tcg sync catalog`).
 - `deploy/`: the home-server stack (`compose.yml`) and WUD auto-update (`wud/`). The runbook
   `deploy/README.md` covers install, rollback (pin `TCG_POKEDEX_IMAGE_TAG` to a commit sha)
   and the expand/contract-only migration rule.
@@ -101,11 +112,14 @@ Backend (run from `backend/`; needs `uv`, which installs Python 3.13):
   Config comes from `TCG_POKEDEX_*` env vars or `backend/.env` (see `backend/.env.example`).
 - `uv run python -m tcg_pokedex.migrations`: upgrade `TCG_POKEDEX_DATABASE_URL` to the latest
   migration. The container entrypoint runs the same command.
+- `uv run tcg sync catalog`: copy the TCGdex `pt` catalog (series, sets, cards) into
+  `TCG_POKEDEX_DATABASE_URL`. Prints the run as JSON on stdout, logs JSON lines on stderr,
+  and exits `0`/`1`/`2` for succeeded/partial/failed.
 - `uv run alembic revision --autogenerate -m "<summary>"`: draft a migration from the tables
   in `tcg_pokedex/schema.py` (dev database at head first), then review it by hand.
 - `uv run pytest`: run the tests. Database tests start Postgres with Testcontainers, so
   Docker must be running.
-- `uv run pytest --cov`: run the tests with the coverage gate (branch coverage, 90% floor).
+- `uv run pytest --cov`: run the tests with the coverage gate (branch coverage, 80% floor).
 - `uv run ruff check .` and `uv run ruff format --check .`: lint and formatting.
 - `uv run pyright --warnings`: strict type check; warnings also fail.
 

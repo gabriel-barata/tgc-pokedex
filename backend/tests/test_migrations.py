@@ -7,6 +7,8 @@ from sqlalchemy import create_engine, inspect
 
 from tcg_pokedex.migrations import alembic_config, upgrade_to_head
 
+SCHEMA = {"alembic_version", "owners", "series", "sets", "cards", "sync_runs"}
+
 
 def table_names(database_url: str) -> set[str]:
     engine = create_engine(database_url)
@@ -21,7 +23,7 @@ def test_upgrade_creates_the_schema_on_an_empty_database(
 ) -> None:
     upgrade_to_head(empty_database_url)
 
-    assert {"alembic_version", "owners"} <= table_names(empty_database_url)
+    assert table_names(empty_database_url) == SCHEMA
 
 
 def test_upgrade_is_a_no_op_when_already_at_head(empty_database_url: str) -> None:
@@ -29,7 +31,7 @@ def test_upgrade_is_a_no_op_when_already_at_head(empty_database_url: str) -> Non
 
     upgrade_to_head(empty_database_url)
 
-    assert {"alembic_version", "owners"} <= table_names(empty_database_url)
+    assert table_names(empty_database_url) == SCHEMA
 
 
 def test_migrations_match_the_table_definitions(empty_database_url: str) -> None:
@@ -54,4 +56,4 @@ def test_module_upgrades_the_configured_database(
 
     runpy.run_module("tcg_pokedex.migrations", run_name="__main__")
 
-    assert "owners" in table_names(empty_database_url)
+    assert {"owners", "cards"} <= table_names(empty_database_url)

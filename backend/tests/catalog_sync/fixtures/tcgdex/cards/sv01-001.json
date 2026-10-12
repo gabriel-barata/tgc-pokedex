@@ -1,0 +1,19 @@
+{
+  "id": "sv01-001",
+  "localId": "001",
+  "name": "Pineco",
+  "rarity": "Comum",
+  "illustrator": "Shigenori Negishi",
+  "image": "https://assets.tcgdex.net/pt/sv/sv01/001",
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "set": {
+    "id": "sv01",
+    "name": "Escarlate e Violeta"
+  }
+}

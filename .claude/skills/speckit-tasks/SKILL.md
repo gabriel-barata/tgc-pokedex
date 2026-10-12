@@ -142,7 +142,7 @@ The tasks.md should be immediately executable - each task must be specific enoug
 
 **CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing.
 
-**Tests are MANDATORY** (constitution, Principle I): generate test tasks for every behavior, each listed before the implementation task it covers.
+**Tests are MANDATORY** (constitution, Principles I and VI): generate test tasks for the main behaviours of each story (the happy path and the failure paths that matter), not for every edge case or scenario, each listed before the implementation task it covers. Group a behaviour's test task and implementation task so it lands as one `test:`/`feat:` commit pair.
 
 ### Checklist Format (REQUIRED)
 

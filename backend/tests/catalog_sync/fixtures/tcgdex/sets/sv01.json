@@ -1,0 +1,27 @@
+{
+  "id": "sv01",
+  "name": "Escarlate e Violeta",
+  "releaseDate": "2023-03-31",
+  "serie": {
+    "id": "sv",
+    "name": "Escarlate e Violeta"
+  },
+  "cardCount": {
+    "official": 198,
+    "total": 258
+  },
+  "logo": "https://assets.tcgdex.net/pt/sv/sv01/logo",
+  "symbol": "https://assets.tcgdex.net/univ/sv/sv01/symbol",
+  "cards": [
+    {
+      "id": "sv01-001",
+      "localId": "001",
+      "name": "Pineco"
+    },
+    {
+      "id": "sv01-002",
+      "localId": "002",
+      "name": "Heracross"
+    }
+  ]
+}

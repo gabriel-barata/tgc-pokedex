@@ -9,7 +9,7 @@ description: "Task list template for feature implementation (PTCG override: test
 
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: Mandatory (constitution, Principle I). Every test task is listed before the implementation task it covers, and its test must fail before that task starts.
+**Tests**: Mandatory (constitution, Principles I and VI), for the main behaviours only. Every test task is listed before the implementation task it covers, and its test must fail before that task starts.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
