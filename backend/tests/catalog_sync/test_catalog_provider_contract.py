@@ -3,16 +3,25 @@
 Both providers serve the same catalog: the recorded TCGdex corpus (`tcgdex_fixtures`).
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from datetime import date
 
+import httpx2
 import pytest
 
+from tcg_pokedex.catalog_sync.adapters.tcgdex import TcgdexProvider
 from tcg_pokedex.catalog_sync.domain import Card, Failure, SetListing
 from tcg_pokedex.catalog_sync.fakes import InMemoryCatalogProvider
 from tcg_pokedex.catalog_sync.ports import CatalogProvider, ProviderUnavailableError
 from tests.catalog_sync.builders import make_card, make_listing, make_series, make_set
-from tests.catalog_sync.tcgdex_fixtures import SV01_CARD_IDS
+from tests.catalog_sync.tcgdex_fixtures import (
+    HAPPY,
+    SV01_CARD_IDS,
+    FixtureRoutes,
+    Raise,
+    Reply,
+    SleepRecorder,
+)
 
 SERIES_IDS = ["base", "xy", "swsh", "sv", "tcgp"]
 
@@ -21,7 +30,7 @@ def sv01_card(card_id: str) -> Card:
     return make_card(id=card_id, collector_number=card_id.removeprefix("sv01-"))
 
 
-def corpus_fake() -> InMemoryCatalogProvider:
+def seeded_fake() -> InMemoryCatalogProvider:
     provider = InMemoryCatalogProvider()
     provider.add_series("base")
     provider.add_series("xy")
@@ -56,8 +65,12 @@ def corpus_fake() -> InMemoryCatalogProvider:
     return provider
 
 
-def corpus_fake_with_failures() -> InMemoryCatalogProvider:
-    provider = corpus_fake()
+def corpus_fake(_request: pytest.FixtureRequest) -> CatalogProvider:
+    return seeded_fake()
+
+
+def corpus_fake_with_failures(_request: pytest.FixtureRequest) -> CatalogProvider:
+    provider = seeded_fake()
     provider.fail_set("sv", "sv02", "HTTP 500 after 3 attempts")
     card_ids = [f"fail01-00{n}" for n in range(1, 5)]
     provider.add_set(
@@ -70,28 +83,42 @@ def corpus_fake_with_failures() -> InMemoryCatalogProvider:
     return provider
 
 
-def index_down_fake() -> InMemoryCatalogProvider:
-    provider = corpus_fake()
+def index_down_fake(_request: pytest.FixtureRequest) -> CatalogProvider:
+    provider = seeded_fake()
     provider.take_down("HTTP 500 after 3 attempts")
     return provider
 
 
-@pytest.fixture(params=[corpus_fake], ids=["fake"])
+def tcgdex_over(
+    routes: Mapping[str, Sequence[Reply | Raise]], request: pytest.FixtureRequest
+) -> TcgdexProvider:
+    provider = TcgdexProvider(
+        transport=httpx2.MockTransport(FixtureRoutes(routes)), sleep=SleepRecorder()
+    )
+    request.addfinalizer(provider.close)
+    return provider
+
+
+def corpus_tcgdex(request: pytest.FixtureRequest) -> CatalogProvider:
+    return tcgdex_over(HAPPY, request)
+
+
+@pytest.fixture(params=[corpus_fake, corpus_tcgdex], ids=["fake", "tcgdex"])
 def provider(request: pytest.FixtureRequest) -> CatalogProvider:
-    factory: Callable[[], CatalogProvider] = request.param
-    return factory()
+    factory: Callable[[pytest.FixtureRequest], CatalogProvider] = request.param
+    return factory(request)
 
 
 @pytest.fixture(params=[corpus_fake_with_failures], ids=["fake"])
 def failing_provider(request: pytest.FixtureRequest) -> CatalogProvider:
-    factory: Callable[[], CatalogProvider] = request.param
-    return factory()
+    factory: Callable[[pytest.FixtureRequest], CatalogProvider] = request.param
+    return factory(request)
 
 
 @pytest.fixture(params=[index_down_fake], ids=["fake"])
 def index_down_provider(request: pytest.FixtureRequest) -> CatalogProvider:
-    factory: Callable[[], CatalogProvider] = request.param
-    return factory()
+    factory: Callable[[pytest.FixtureRequest], CatalogProvider] = request.param
+    return factory(request)
 
 
 def test_lists_every_series_in_provider_order_pocket_included(
