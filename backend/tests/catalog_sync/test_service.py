@@ -12,6 +12,7 @@ from tcg_pokedex.catalog_sync.domain import (
     Fetched,
     KindCounts,
     RunStatus,
+    SetBatch,
     SetCounts,
     SyncKind,
     Variant,
@@ -345,3 +346,144 @@ def test_a_series_seen_again_counts_as_unchanged_once() -> None:
     assert run.result is not None
     assert run.result.counts.series.unchanged == 2
     assert repository.series["sv"] == Fetched(SV, LATER)
+
+
+def failure_lines(caplog: pytest.LogCaptureFixture) -> list[dict[str, Any]]:
+    return [
+        fields(record)
+        for record in caplog.records
+        if record.getMessage() == "sync.failure"
+    ]
+
+
+ZERO_SERIES = KindCounts(fetched=0, created=0, updated=0, unchanged=0)
+ZERO_SETS = SetCounts(fetched=0, created=0, updated=0, unchanged=0, skipped=0, failed=0)
+ZERO_CARDS = CardCounts(fetched=0, created=0, updated=0, unchanged=0, failed=0)
+
+
+def test_a_card_failure_is_counted_listed_and_logged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.INFO, logger="tcg_pokedex")
+    provider = catalog()
+    provider.fail_card("sv01-002", "HTTP 404")
+    repository = InMemoryCatalogRepository()
+
+    run = sync_catalog(provider, repository, FakeClock(START))
+
+    failure = Failure(kind="card", provider_id="sv01-002", reason="HTTP 404")
+    assert run.status is RunStatus.PARTIAL
+    assert run.result is not None
+    assert run.result.counts.cards.failed == 1
+    assert run.result.counts.cards.fetched == 3
+    assert run.result.failures == (failure,)
+    assert failure_lines(caplog) == [
+        {
+            "run_id": str(run.id),
+            "kind": "card",
+            "provider_id": "sv01-002",
+            "reason": "HTTP 404",
+        }
+    ]
+    assert "sv01-002" not in repository.cards
+    assert "sv01-001" in repository.cards
+    assert "sv01" in repository.sets
+
+
+def test_a_set_failure_skips_its_cards_and_the_run_goes_on() -> None:
+    provider = catalog()
+    provider.fail_set("sv", "sv03", "HTTP 500 after 3 attempts")
+    repository = InMemoryCatalogRepository()
+
+    run = sync_catalog(provider, repository, FakeClock(START))
+
+    assert run.status is RunStatus.PARTIAL
+    assert run.result is not None
+    assert run.result.counts.sets.failed == 1
+    assert run.result.counts.sets.fetched == 3
+    assert run.result.failures == (
+        Failure(kind="set", provider_id="sv03", reason="HTTP 500 after 3 attempts"),
+    )
+    assert "sv03" not in repository.sets
+    assert set(repository.sets) == {"xy0", "sv01", "sv02"}
+    assert not [path for path in provider.requests if path.startswith("cards/sv03")]
+
+
+def test_a_valid_set_whose_cards_all_fail_is_still_stored() -> None:
+    provider = InMemoryCatalogProvider()
+    provider.add_set(make_listing(card_set=XY0, series=XY, card_ids=["xy0-1"]))
+    provider.fail_card("xy0-1", "no variants")
+    repository = InMemoryCatalogRepository()
+
+    run = sync_catalog(provider, repository, FakeClock(START))
+
+    assert repository.series == {"xy": Fetched(XY, START)}
+    assert repository.sets == {"xy0": Fetched(XY0, START)}
+    assert repository.cards == {}
+    assert run.status is RunStatus.PARTIAL
+
+
+@pytest.mark.parametrize("down", [None, "sv"], ids=["series list", "series detail"])
+def test_an_unavailable_index_fails_the_run_before_any_write(down: str | None) -> None:
+    provider = catalog()
+    provider.take_down("HTTP 500 after 3 attempts", series_id=down)
+    repository = InMemoryCatalogRepository()
+
+    run = sync_catalog(provider, repository, FakeClock(START))
+
+    assert run.status is RunStatus.FAILED
+    assert run.error == "HTTP 500 after 3 attempts"
+    assert run.result is not None
+    assert run.result.counts.series == ZERO_SERIES
+    assert run.result.counts.sets == ZERO_SETS
+    assert run.result.counts.cards == ZERO_CARDS
+    assert repository.calls == ["start_run", "finish_run"]
+    assert repository.get_run(run.id) == run
+    assert not [path for path in provider.requests if path.startswith("sets/")]
+
+
+class ExplodingRepository(InMemoryCatalogRepository):
+    """Fails on its second `save_set`, as a lost connection would."""
+
+    def save_set(self, batch: SetBatch, fetched_at: datetime) -> None:
+        if self.calls.count("save_set") == 1:
+            self.calls.append("save_set")
+            raise RuntimeError("connection lost")
+        super().save_set(batch, fetched_at)
+
+
+def test_an_unexpected_error_fails_the_run_and_still_closes_it(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.INFO, logger="tcg_pokedex")
+    repository = ExplodingRepository()
+
+    run = sync_catalog(catalog(), repository, FakeClock(START))
+
+    assert run.status is RunStatus.FAILED
+    assert run.error == "connection lost"
+    assert run.finished_at == START
+    assert set(repository.sets) == {"xy0"}
+    assert repository.calls[-1] == "finish_run"
+    assert repository.get_run(run.id) == run
+    finished = [r for r in caplog.records if r.getMessage() == "sync.run.finished"]
+    assert fields(finished[0])["error"] == "connection lost"
+    assert fields(finished[0])["status"] == "failed"
+
+
+def test_only_the_first_100_failures_are_kept_but_all_are_counted_and_logged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.INFO, logger="tcg_pokedex")
+    card_ids = [f"sv01-{n:03d}" for n in range(1, 106)]
+    provider = InMemoryCatalogProvider()
+    provider.add_set(make_listing(card_ids=card_ids))
+    for card_id in card_ids:
+        provider.fail_card(card_id, "HTTP 404")
+
+    run = sync_catalog(provider, InMemoryCatalogRepository(), FakeClock(START))
+
+    assert run.result is not None
+    assert run.result.counts.cards.failed == 105
+    assert [failure.provider_id for failure in run.result.failures] == card_ids[:100]
+    assert len(failure_lines(caplog)) == 105
