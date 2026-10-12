@@ -22,6 +22,10 @@ invariants below hold.
   gains the card-count rule, the tracking copy and the cover's content until the spine
   bar exists (PTCG-019). Decision 16b: no set tint for now, so every cover uses plain
   paper. The PTCG-015 open item is closed.
+- **2026-10-12 (PTCG-017):** the ownership rule is settled. Owning any version of a card
+  owns it; "só normal" is information only. A set is complete when every card is owned,
+  so the spine bar has no track left, light segments included (decisions 13 and 14).
+  The PTCG-017 open item is closed; which cards make up the total moves to PTCG-039.
 
 ## Context
 
@@ -263,9 +267,11 @@ sets); a binder-view toggle (two views to maintain).
 
 - **Wanted version:** we prefer a card's Reverse or Holo over its Normal. When a card
   has a Reverse or Holo version and we own only the Normal, the wanted version is
-  still missing. *Assumed rule, to be settled in the domain spec (PTCG-017):* the
-  wanted version is any non-Normal version the card has; a card with only one
-  version wants that one.
+  still missing. *Settled in PTCG-017:* owning any version owns the card. The wanted
+  version is missing when only the Normal is owned and the card has any other
+  version. This is information only: the card still counts as owned, for the album
+  and for completion. A card with a single version never has a wanted version
+  missing.
 - **Foil honesty:** the catalog usually has one image per card, the same for all
   versions. The tile shows the **best owned version** (Holo > Reverse > Normal) with a
   CSS foil layer that mimics the physical finish. *Reverse* puts a soft rainbow sheen
@@ -293,13 +299,16 @@ on `surface.sunken`, a hairline border and a rounded end cap.
   cards owned only in Normal while a wanted version exists.
 - The **track** is missing cards.
 - **Label, count first:** "43 de 159 · 7 só normal". A percent is optional,
-  secondary and small. The set counts as complete only when the bar is fully deep.
+  secondary and small. The set is complete when every card is owned in any version,
+  that is when the bar has no track left, light segments included.
 - When complete, the bar's end cap becomes the duo badge and the set-complete
   celebration runs once (decision 21).
 - No sorting or ranking of sets by percent, and no streaks.
 
-The exact counting rule (official cards only vs. including secret rares, and what
-"wanted" means) belongs to the domain (PTCG-017). The bar only displays it.
+The domain (PTCG-017) owns the counts and the bar only displays them. The total is
+the set's printed card count, or every card when none is printed, the same number the
+sets page shows. Until PTCG-039 decides which cards count (secret rares beyond the
+printed count, catalog gaps), owned cards are capped at that total.
 
 **Rejected:** completion rings (the original card wording); a Poké Ball fill.
 
@@ -623,8 +632,8 @@ Owned and missing data in the mockups is fictional. Prices are illustrative.
 
 ## Open items for feature cards
 
-- **PTCG-017 (Ownership domain):** the "wanted version" rule and the completion rule
-  that the spine bar displays.
+- **PTCG-039 (Completion total):** which cards make up a set's total (secret rares,
+  odd numbering, catalog gaps); until then owned cards are capped at the printed count.
 - **PTCG-018 (Mark owned):** the default variant toggled by the sticker (assumed:
   Normal, or the only version the card has).
 - **PTCG-022 (Show price):** the price line formats within decision 18.
