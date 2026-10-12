@@ -23,7 +23,8 @@ workflow only. It does not restate the constitution, and it defers to it on any 
 
 ## Working on a card
 
-One card = one branch = one PR.
+One card = one branch = one PR. `/start-work PTCG-NNN [notes]` (`.claude/skills/start-work/`)
+runs steps 1–4 below and stops once the spec is written to `temp/specs/`.
 
 1. Read the card. If a card listed under "Depends on" is not in `Done`, warn the user and ask
    before starting.
@@ -47,8 +48,9 @@ One card = one branch = one PR.
      branch. `/speckit-analyze` is required before implementing (constitution, Quality
      Gate 5).
    - **`spec-kit: no`** (chores, docs, spikes): agree on the open decisions with the user
-     before implementing, one question at a time, each with a recommended answer. Skip this
-     only when the user says the card is unambiguous.
+     before implementing, one question at a time, each with a recommended answer, and write
+     them to a short `temp/specs/PTCG-NNN-<short-slug>.md` (goal, agreed behaviour, done when,
+     out of scope). Skip the questions only when the user says the card is unambiguous.
 5. Commit, push the branch, open the PR, and move the card to `In Review (PR open)`.
 
 ## Commits
