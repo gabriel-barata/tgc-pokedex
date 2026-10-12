@@ -88,7 +88,7 @@ small. A PR exists so a human can review it; a long test diff defeats that.
 
 ## Language
 
-- UI text: Brazilian Portuguese (pt-BR), with strings centralized per slice.
+- UI text: Brazilian Portuguese (pt-BR), with strings centralized in `frontend/src/strings/`.
 - Everything else (code, commits, specs, cards, docs): English.
 
 ## Commands
@@ -160,7 +160,13 @@ apply`, so the image ships the community build pinned in `Dockerfile`). Layout u
 - `uv run ruff check .` and `uv run ruff format --check .`: lint and formatting.
 - `uv run pyright --warnings`: strict type check; warnings also fail.
 
-Frontend (run from `frontend/`; needs Node 26+ and pnpm, pinned in `package.json`):
+Frontend (run from `frontend/`; needs Node 26+ and pnpm, pinned in `package.json`). Layout
+under `src/`, one folder per role: `api/` (the API client, the generated schema and one
+hooks file per resource), `pages/` (one per route), `components/` (pieces grouped by area:
+`layout/`, `sets/`, `status/`), `strings/` (pt-BR text, one file per area), `ui/` (design
+tokens, shadcn components, motifs) and `testing/` (test setup, MSW server, render helper),
+plus `main.tsx` and `App.tsx` (the route table). Imports use the `@/` alias for `src/`;
+tests sit next to the file they test.
 
 - `pnpm install`: install dependencies.
 - `pnpm dev`: dev server on :5173. It proxies `/api` and `/healthz` to the backend on :8000.
@@ -176,7 +182,7 @@ Frontend (run from `frontend/`; needs Node 26+ and pnpm, pinned in `package.json
 - `pnpm dlx shadcn@latest add <component>`: copy a shadcn/ui component into `src/ui/`
   (`components.json`), then restyle it with the tokens in `src/ui/theme.css`, the
   single source of design tokens (`docs/design.md`).
-- `pnpm generate:api`: regenerate `openapi.json` and `src/api-schema.gen.ts` from the backend.
+- `pnpm generate:api`: regenerate `openapi.json` and `src/api/schema.gen.ts` from the backend.
   Run it after any backend API change and commit both files; never edit them by hand.
 
 ## CI and branch protection
