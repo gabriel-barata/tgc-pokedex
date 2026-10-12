@@ -7,7 +7,7 @@ new digest, it pulls the image and recreates the app container.
 
 | Repo path | Server path | What it is |
 | --- | --- | --- |
-| `compose.yml`, `.env.example` | `/srv/docker/tcg-pokedex/` | The app with its `images` volume, and Postgres 17 with its own. |
+| `compose.yml`, `.env.example` | `/srv/docker/tcg-pokedex/` | The app and the sync `worker`, sharing the `images` volume, and Postgres 17 with its own volume. |
 | `wud/compose.yml`, `wud/.env.example` | `/srv/docker/wud/` | WUD, shared by the whole homelab. |
 
 Secrets live only in the `.env` files on the server (`chmod 600`), never in the repository.
@@ -71,13 +71,27 @@ The app keeps two named volumes: `postgres-data` (the database) and `images` (ca
 set logos and symbols, mounted at `/data/images`). Both survive container updates. Back up
 the database; the `images` volume can be lost, because the next image sync downloads it again.
 
+The `worker` container runs `tcg sync all` (the catalog, then the images unless the catalog
+run failed) **every Monday at 04:00 America/Sao_Paulo**. The schedule lives only in
+[`crontab`](crontab), which the image ships at `/app/crontab`. To change it, edit that file
+and merge: the next image brings the new schedule. The worker runs the same image as the
+app, so WUD updates both. Its log is in `docker compose logs worker`.
+
+The runs show on http://pokedex.mistoquente.de/status, whose **Sincronizar agora** button
+starts the same sync right away. To run one by hand:
+
 ```sh
 cd /srv/docker/tcg-pokedex
+docker compose exec app tcg sync all       # the catalog, then the images
 docker compose exec app tcg sync catalog   # the TCGdex pt catalog
 docker compose exec app tcg sync images    # tracked sets' card images, every set's artwork
 ```
 
-Each prints its run as JSON and exits `0` (succeeded), `1` (partial) or `2` (failed).
+Each prints its runs as JSON lines and exits `0` (succeeded), `1` (partial) or `2` (failed).
+Only one sync runs at a time: while one runs (scheduled, from the button, from the command
+line, or a set's image download after tracking it), another is refused, and a scheduled
+one is skipped until the next week. A sync killed midway, for example by a restart, does
+not block the next one; it shows as failed with an "interrupted" error.
 
 ## Which version is running
 

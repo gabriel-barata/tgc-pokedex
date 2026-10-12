@@ -1,5 +1,17 @@
 # syntax=docker/dockerfile:1
 
+ARG TARGETARCH
+
+FROM scratch AS supercronic-amd64
+ADD --checksum=sha256:a53ae236602c7338aba3fbaff40bda6300eae3b9fedb8261eb06cfe3724430c1 --chmod=755 \
+    https://github.com/aptible/supercronic/releases/download/v0.2.49/supercronic-linux-amd64 /supercronic
+
+FROM scratch AS supercronic-arm64
+ADD --checksum=sha256:02aa0cb229ba09050cba6638059dadb9eedc2276632ea43d6a57a2f8c1629dd5 --chmod=755 \
+    https://github.com/aptible/supercronic/releases/download/v0.2.49/supercronic-linux-arm64 /supercronic
+
+FROM supercronic-${TARGETARCH} AS supercronic
+
 FROM node:26-slim AS frontend
 WORKDIR /app/frontend
 RUN npm install --global corepack@latest && corepack enable
@@ -29,6 +41,8 @@ RUN groupadd --system --gid 10001 app \
 WORKDIR /app
 COPY --from=backend /app /app
 COPY --from=frontend /app/frontend/dist /app/spa
+COPY --from=supercronic /supercronic /usr/local/bin/supercronic
+COPY deploy/crontab /app/crontab
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     TCG_POKEDEX_ENVIRONMENT=prod \

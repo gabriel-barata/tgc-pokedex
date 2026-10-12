@@ -486,6 +486,44 @@
           }
         }
       }
+    },
+    "/api/sync": {
+      "get": {
+        "summary": "Get Sync Status",
+        "operationId": "get_sync_status_api_sync_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncStatus"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Sync Now",
+        "description": "Start the catalog sync, then the image sync, in the background.",
+        "operationId": "sync_now_api_sync_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncStatus"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another sync is running"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -594,6 +632,69 @@
         ],
         "title": "QuantityUpdate",
         "description": "The number of copies to record for one variant of a card."
+      },
+      "RunCounts": {
+        "properties": {
+          "fetched": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Fetched"
+          },
+          "updated": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Updated"
+          },
+          "failed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Failed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "fetched",
+          "updated",
+          "failed"
+        ],
+        "title": "RunCounts",
+        "description": "Items a run fetched from the provider, changed in our store, and failed on."
+      },
+      "RunFailure": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "provider_id": {
+            "type": "string",
+            "title": "Provider Id"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "provider_id",
+          "reason"
+        ],
+        "title": "RunFailure",
+        "description": "One item a run failed on: its kind, its provider id and why."
+      },
+      "RunStatus": {
+        "type": "string",
+        "enum": [
+          "running",
+          "succeeded",
+          "partial",
+          "failed"
+        ],
+        "title": "RunStatus"
       },
       "SeriesEntry": {
         "properties": {
@@ -780,6 +881,124 @@
         ],
         "title": "SetTracking",
         "description": "A set's tracking state for one owner, and its image progress."
+      },
+      "SyncKind": {
+        "type": "string",
+        "enum": [
+          "catalog",
+          "images"
+        ],
+        "title": "SyncKind"
+      },
+      "SyncRunEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SyncKind"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "counts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunCounts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failures": {
+            "items": {
+              "$ref": "#/components/schemas/RunFailure"
+            },
+            "type": "array",
+            "title": "Failures"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "started_at",
+          "finished_at",
+          "duration_ms",
+          "counts",
+          "failures",
+          "error"
+        ],
+        "title": "SyncRunEntry",
+        "description": "A sync run. `counts` is None until it ends; `failures` keeps the first 100."
+      },
+      "SyncStatus": {
+        "properties": {
+          "running": {
+            "type": "boolean",
+            "title": "Running"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/SyncRunEntry"
+            },
+            "type": "array",
+            "title": "Runs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "running",
+          "runs"
+        ],
+        "title": "SyncStatus",
+        "description": "Whether a sync or set download runs now, and the latest runs, newest first."
       },
       "ValidationError": {
         "properties": {

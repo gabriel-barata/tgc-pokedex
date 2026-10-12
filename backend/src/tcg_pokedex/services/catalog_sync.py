@@ -13,11 +13,9 @@ from sqlalchemy import Connection, Engine, Table, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.exc import IntegrityError
 
-from tcg_pokedex.schemas import Variant
+from tcg_pokedex.schemas import RunStatus, SyncKind, Variant
 from tcg_pokedex.services.sync_runs import (
     MAX_FAILURES,
-    RunStatus,
-    SyncKind,
     SyncRun,
     close_run,
     finish_run,

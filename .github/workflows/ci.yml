@@ -129,6 +129,7 @@ jobs:
           docker run --rm tcg-pokedex:ci tcg --help | grep -F 'sync'
           docker run --rm tcg-pokedex:ci tcg sync images --help | grep -F 'tcg sync images'
           docker run --rm tcg-pokedex:ci sh -c 'test -w "$TCG_POKEDEX_IMAGE_DIR"'
+          docker run --rm tcg-pokedex:ci supercronic -test /app/crontab
       - name: Show the app logs
         if: failure()
         run: docker logs app

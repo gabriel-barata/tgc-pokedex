@@ -100,12 +100,15 @@ Whole stack (run from the repo root; needs Docker):
 - `docker build -t tcg-pokedex .`: build the production image (`Dockerfile`). It serves the
   SPA and the API on :8000, runs migrations on start and needs `TCG_POKEDEX_DATABASE_URL`,
   e.g. `docker run --rm -p 8000:8000 -e TCG_POKEDEX_DATABASE_URL=… tcg-pokedex`. Inside
-  it, `tcg sync catalog` runs the catalog sync and `tcg sync images` the image sync (e.g.
+  it, `tcg sync catalog` runs the catalog sync, `tcg sync images` the image sync and
+  `tcg sync all` both (e.g.
   `docker run --rm -e TCG_POKEDEX_DATABASE_URL=… tcg-pokedex tcg sync catalog`). Cached
   images live in `/data/images` (`TCG_POKEDEX_IMAGE_DIR`); mount a volume there to keep them.
-- `deploy/`: the home-server stack (`compose.yml`) and WUD auto-update (`wud/`). The runbook
-  `deploy/README.md` covers install, rollback (pin `TCG_POKEDEX_IMAGE_TAG` to a commit sha)
-  and the expand/contract-only migration rule.
+  `supercronic -passthrough-logs /app/crontab` runs the sync schedule instead of the app.
+- `deploy/`: the home-server stack (`compose.yml`: the app, the `worker` that runs the sync
+  schedule from `deploy/crontab`, and Postgres) and WUD auto-update (`wud/`). The runbook
+  `deploy/README.md` covers install, the schedule, rollback (pin `TCG_POKEDEX_IMAGE_TAG` to a
+  commit sha) and the expand/contract-only migration rule.
 
 Backend (run from `backend/`; needs `uv`, which installs Python 3.13). Layout under
 `src/tcg_pokedex/` (constitution, Principle III): `routes/<resource>.py` for the API,
@@ -123,6 +126,11 @@ Backend (run from `backend/`; needs `uv`, which installs Python 3.13). Layout un
   and symbol into `TCG_POKEDEX_IMAGE_DIR` (default `data/images`, i.e. `backend/data/images`,
   git-ignored). Same output and exit codes as `tcg sync catalog`. Tracking a set through
   `PUT /api/sets/{set_id}/tracking` also downloads that set's card images in the background.
+- `uv run tcg sync all`: `tcg sync catalog`, then `tcg sync images` unless the catalog run
+  failed. Prints one JSON line per run and exits with the worse run's code. `POST /api/sync`
+  ("Sincronizar agora" on `/status`) starts the same in the background.
+- Only one sync runs at a time (a Postgres advisory lock): a `tcg sync` that finds another
+  sync or set download running exits `2` without a run, and `POST /api/sync` answers `409`.
 - `uv run alembic revision --autogenerate -m "<summary>"`: draft a migration from the tables
   in `tcg_pokedex/tables.py` (dev database at head first), then review it by hand.
 - `uv run pytest`: run the tests. Database tests start Postgres with Testcontainers, so

@@ -16,7 +16,7 @@ from sqlalchemy import Engine, insert, select, update
 
 from tcg_pokedex.cli import run_sync
 from tcg_pokedex.config import Settings
-from tcg_pokedex.schemas import CardSize
+from tcg_pokedex.schemas import CardSize, RunStatus
 from tcg_pokedex.services.image_sync import (
     CardPlan,
     CardToResolve,
@@ -29,7 +29,7 @@ from tcg_pokedex.services.image_sync import (
     sync_images,
     write_file,
 )
-from tcg_pokedex.services.sync_runs import RunStatus, SyncRun, get_run
+from tcg_pokedex.services.sync_runs import SyncRun, get_run
 from tcg_pokedex.tables import HOUSEHOLD_OWNER_ID, card_images, cards, tracked_sets
 from tests.helpers import (
     PIXEL,
