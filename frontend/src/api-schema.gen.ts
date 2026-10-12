@@ -41,6 +41,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sets/{set_id}/ownership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Ownership
+         * @description Every card of the set with the owner's quantity per variant and its flags.
+         */
+        get: operations["get_ownership_api_sets__set_id__ownership_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sets/{set_id}/tracking": {
         parameters: {
             query?: never;
@@ -100,6 +120,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cards/{card_id}/ownership/{variant}/increment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Increment
+         * @description Add one copy of the card's variant.
+         */
+        post: operations["increment_api_cards__card_id__ownership__variant__increment_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cards/{card_id}/ownership/{variant}/decrement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decrement
+         * @description Remove one copy of the card's variant. A variant with none stays at 0.
+         */
+        post: operations["decrement_api_cards__card_id__ownership__variant__decrement_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cards/{card_id}/ownership/{variant}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Quantity
+         * @description Record exactly this many copies of the card's variant.
+         */
+        put: operations["set_quantity_api_cards__card_id__ownership__variant__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -109,6 +189,20 @@ export interface components {
          * @enum {string}
          */
         ArtworkKind: "logo" | "symbol";
+        /**
+         * CardOwnership
+         * @description A card's quantity per listed variant, in canonical order, and its flags.
+         */
+        CardOwnership: {
+            /** Card Id */
+            card_id: string;
+            /** Variants */
+            variants: components["schemas"]["VariantQuantity"][];
+            /** Owned */
+            owned: boolean;
+            /** Wanted Version Missing */
+            wanted_version_missing: boolean;
+        };
         /**
          * CardSize
          * @enum {string}
@@ -132,6 +226,14 @@ export interface components {
              */
             database: "ok" | "unavailable";
         };
+        /**
+         * QuantityUpdate
+         * @description The number of copies to record for one variant of a card.
+         */
+        QuantityUpdate: {
+            /** Quantity */
+            quantity: number;
+        };
         /** SeriesEntry */
         SeriesEntry: {
             /** Id */
@@ -140,6 +242,20 @@ export interface components {
             name: string;
             /** Sets */
             sets: components["schemas"]["SetEntry"][];
+        };
+        /**
+         * SetCompletion
+         * @description How many of a set's cards the owner has, and how many only in Normal.
+         */
+        SetCompletion: {
+            /** Owned */
+            owned: number;
+            /** So Normal */
+            so_normal: number;
+            /** Total */
+            total: number;
+            /** Complete */
+            complete: boolean;
         };
         /**
          * SetEntry
@@ -165,6 +281,18 @@ export interface components {
             tracked: boolean;
             /** Downloading */
             downloading: boolean;
+            completion: components["schemas"]["SetCompletion"];
+        };
+        /**
+         * SetOwnership
+         * @description Every card of a set, by card id, with the owner's quantities and flags.
+         */
+        SetOwnership: {
+            /** Set Id */
+            set_id: string;
+            completion: components["schemas"]["SetCompletion"];
+            /** Cards */
+            cards: components["schemas"]["CardOwnership"][];
         };
         /**
          * SetTracking
@@ -196,6 +324,21 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /**
+         * Variant
+         * @description A printing a card exists in. Declaration order is the canonical storage order.
+         * @enum {string}
+         */
+        Variant: "normal" | "reverse" | "holo" | "first_edition" | "w_promo";
+        /**
+         * VariantQuantity
+         * @description How many copies of one variant of a card the owner has.
+         */
+        VariantQuantity: {
+            variant: components["schemas"]["Variant"];
+            /** Quantity */
+            quantity: number;
         };
     };
     responses: never;
@@ -251,6 +394,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SeriesEntry"][];
+                };
+            };
+        };
+    };
+    get_ownership_api_sets__set_id__ownership_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetOwnership"];
+                };
+            };
+            /** @description The set is not in the catalog */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -444,6 +625,134 @@ export interface operations {
                 content?: never;
             };
             /** @description The image is not cached */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    increment_api_cards__card_id__ownership__variant__increment_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                card_id: string;
+                variant: components["schemas"]["Variant"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardOwnership"];
+                };
+            };
+            /** @description The card is not in the catalog */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The variant already has 999 copies */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decrement_api_cards__card_id__ownership__variant__decrement_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                card_id: string;
+                variant: components["schemas"]["Variant"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardOwnership"];
+                };
+            };
+            /** @description The card is not in the catalog */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_quantity_api_cards__card_id__ownership__variant__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                card_id: string;
+                variant: components["schemas"]["Variant"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuantityUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CardOwnership"];
+                };
+            };
+            /** @description The card is not in the catalog */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -43,10 +43,9 @@ runs steps 1–4 below and stops once the spec is written to `temp/specs/`.
 
      Then run the spec-kit flow on the ticket branch, feeding that file to
      `/speckit-specify`: `/speckit-specify` → `/speckit-clarify` → `/speckit-plan` →
-     `/speckit-tasks` → `/speckit-analyze` → `/speckit-implement`. Spec-kit names the artifact folder after the branch,
-     `specs/PTCG-NNN-<short-slug>/`, and refuses to run `/speckit-specify` on any other
-     branch. `/speckit-analyze` is required before implementing (constitution, Quality
-     Gate 5).
+     `/speckit-tasks` → `/speckit-implement`. Spec-kit names the artifact folder after the
+     branch, `specs/PTCG-NNN-<short-slug>/`, and refuses to run `/speckit-specify` on any
+     other branch. `/speckit-analyze` between tasks and implement is optional.
    - **`spec-kit: no`** (chores, docs, spikes): agree on the open decisions with the user
      before implementing, one question at a time, each with a recommended answer, and write
      them to a short `temp/specs/PTCG-NNN-<short-slug>.md` (goal, agreed behaviour, done when,

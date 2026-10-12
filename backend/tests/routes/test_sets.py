@@ -1,9 +1,9 @@
-"""Set tracking routes on `create_app`, real Postgres and recorded TCGdex answers."""
+"""Set routes on `create_app`, real Postgres and recorded TCGdex answers."""
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping, Sequence
 from datetime import date
 from pathlib import Path
-from uuid import UUID
+from typing import Any
 
 import httpx2
 import pytest
@@ -14,9 +14,11 @@ from sqlalchemy import Engine, insert, select
 
 from tcg_pokedex.app import create_app
 from tcg_pokedex.config import Settings
-from tcg_pokedex.routes.sets import DownloadRegistry
+from tcg_pokedex.routes.sets import DownloadRegistry, card_ownership, set_completion
+from tcg_pokedex.schemas import Variant
 from tcg_pokedex.tables import (
     HOUSEHOLD_OWNER_ID,
+    cards,
     owners,
     series,
     set_artwork,
@@ -26,19 +28,21 @@ from tcg_pokedex.tables import (
 )
 from tcg_pokedex.tcgdex import SOURCE
 from tests.helpers import (
+    OTHER_OWNER_ID,
     SEEDED_AT,
     FixtureRoutes,
     card_row,
     english,
     image,
+    own,
     seed,
     set_row,
 )
 
 PT_001 = "https://assets.tcgdex.net/pt/sv/sv01/001"
 EN_002 = "https://assets.tcgdex.net/en/swsh/swshp/SWSH032"
-OTHER_OWNER_ID = UUID("00000000-0000-4000-8000-000000000002")
 PROVENANCE = {"source": SOURCE, "fetched_at": SEEDED_AT}
+N, R, H = Variant.NORMAL, Variant.REVERSE, Variant.HOLO
 
 
 @pytest.fixture
@@ -76,6 +80,81 @@ def app(
 def client(app: FastAPI) -> Iterator[TestClient]:
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def owned_client(client: TestClient, engine: Engine) -> TestClient:
+    """The client, with more sv01 cards and a small sv02 set owned by the household
+    and another owner.
+
+    sv02 prints 2 cards and has a third beyond the printed count.
+    """
+    with engine.begin() as connection:
+        connection.execute(
+            insert(sets),
+            {
+                **set_row(
+                    id="sv02",
+                    name="Evoluções em Paldea",
+                    release_date=date(2023, 6, 9),
+                    official_count=2,
+                    total_count=3,
+                ),
+                **PROVENANCE,
+            },
+        )
+        connection.execute(
+            insert(cards),
+            [
+                {**card_row(id=card_id, set_id=set_id, variants=variants), **PROVENANCE}
+                for card_id, set_id, variants in [
+                    ("sv01-004", "sv01", ["normal"]),
+                    ("sv01-005", "sv01", ["holo"]),
+                    ("sv01-006", "sv01", ["normal", "reverse"]),
+                    ("sv01-199", "sv01", ["normal", "reverse"]),
+                    ("sv02-001", "sv02", ["normal", "reverse"]),
+                    ("sv02-002", "sv02", ["normal"]),
+                    ("sv02-003", "sv02", ["holo"]),
+                ]
+            ],
+        )
+        connection.execute(insert(owners).values(id=OTHER_OWNER_ID, name="Outra"))
+    for card_id, variant, quantity in [
+        ("sv01-002", "normal", 2),
+        ("sv01-003", "reverse", 1),
+        ("sv01-004", "normal", 1),
+        ("sv01-005", "holo", 1),
+        ("sv01-006", "normal", 1),
+        ("sv01-006", "reverse", 1),
+        ("sv01-199", "reverse", 2),
+        ("sv02-001", "normal", 1),
+        ("sv02-002", "normal", 1),
+        ("sv02-003", "holo", 1),
+    ]:
+        own(engine, card_id, variant, quantity)
+    own(engine, "sv01-001", "normal", 5, owner_id=OTHER_OWNER_ID)
+    own(engine, "sv01-005", "holo", 3, owner_id=OTHER_OWNER_ID)
+    return client
+
+
+SV01_COMPLETION = {"owned": 6, "so_normal": 1, "total": 198, "complete": False}
+SV02_COMPLETION = {"owned": 2, "so_normal": 1, "total": 2, "complete": True}
+
+
+def none_of(total: int) -> dict[str, Any]:
+    return {"owned": 0, "so_normal": 0, "total": total, "complete": False}
+
+
+def card(card_id: str, owned: bool, missing: bool, **quantities: int) -> dict[str, Any]:
+    return {
+        "card_id": card_id,
+        "variants": [
+            {"variant": variant, "quantity": quantity}
+            for variant, quantity in quantities.items()
+        ],
+        "owned": owned,
+        "wanted_version_missing": missing,
+    }
 
 
 def test_tracking_a_set_downloads_its_images_once(
@@ -181,6 +260,7 @@ def test_sets_are_listed_by_series_newest_first_with_the_owners_tracking(
                     "has_symbol": False,
                     "tracked": False,
                     "downloading": True,
+                    "completion": none_of(88),
                 }
             ],
         },
@@ -197,6 +277,7 @@ def test_sets_are_listed_by_series_newest_first_with_the_owners_tracking(
                     "has_symbol": False,
                     "tracked": False,
                     "downloading": False,
+                    "completion": none_of(198),
                 },
                 {
                     "id": "sv01",
@@ -207,7 +288,114 @@ def test_sets_are_listed_by_series_newest_first_with_the_owners_tracking(
                     "has_symbol": False,
                     "tracked": True,
                     "downloading": False,
+                    "completion": none_of(198),
                 },
             ],
         },
     ]
+
+
+@pytest.mark.parametrize(
+    ("listed", "stored", "quantities", "owned", "wanted_version_missing"),
+    [
+        ([N, R], {}, [(N, 0), (R, 0)], False, False),
+        ([N], {N: 1}, [(N, 1)], True, False),
+        ([N, R], {N: 2}, [(N, 2), (R, 0)], True, True),
+        ([N, R], {R: 1}, [(N, 0), (R, 1)], True, False),
+        ([N, R], {N: 3, R: 1}, [(N, 3), (R, 1)], True, False),
+        ([H], {H: 1}, [(H, 1)], True, False),
+        ([N], {N: 1, R: 3}, [(N, 1)], True, False),
+    ],
+)
+def test_card_ownership_follows_the_rules_table(
+    listed: Sequence[Variant],
+    stored: Mapping[Variant, int],
+    quantities: list[tuple[Variant, int]],
+    owned: bool,
+    wanted_version_missing: bool,
+) -> None:
+    result = card_ownership("sv01-001", listed, stored)
+
+    assert result.model_dump(mode="json") == {
+        "card_id": "sv01-001",
+        "variants": [
+            {"variant": variant.value, "quantity": quantity}
+            for variant, quantity in quantities
+        ],
+        "owned": owned,
+        "wanted_version_missing": wanted_version_missing,
+    }
+
+
+def test_a_sets_ownership_lists_every_card_with_its_quantities_and_flags(
+    owned_client: TestClient,
+) -> None:
+    read = owned_client.get("/api/sets/sv01/ownership")
+
+    assert read.status_code == 200
+    assert read.json() == {
+        "set_id": "sv01",
+        "completion": SV01_COMPLETION,
+        "cards": [
+            card("sv01-001", False, False, normal=0, reverse=0),
+            card("sv01-002", True, True, normal=2, reverse=0),
+            card("sv01-003", True, False, normal=0, reverse=1),
+            card("sv01-004", True, False, normal=1),
+            card("sv01-005", True, False, holo=1),
+            card("sv01-006", True, False, normal=1, reverse=1),
+            card("sv01-199", True, False, normal=0, reverse=2),
+        ],
+    }
+    assert owned_client.get("/api/sets/xy1/ownership").status_code == 404
+
+
+def test_a_recorded_quantity_survives_a_restart(
+    client: TestClient, database_url: str, tmp_path: Path
+) -> None:
+    client.post("/api/cards/sv01-001/ownership/normal/increment")
+    settings = Settings(
+        database_url=PostgresDsn(database_url), image_dir=tmp_path / "images"
+    )
+
+    with TestClient(create_app(settings)) as restarted:
+        read = restarted.get("/api/sets/sv01/ownership").json()
+
+    assert read["cards"][0] == card("sv01-001", True, True, normal=1, reverse=0)
+
+
+@pytest.mark.parametrize(
+    ("total", "owned", "so_normal", "expected"),
+    [
+        (0, 0, 0, (0, 0, False)),
+        (198, 0, 0, (0, 0, False)),
+        (198, 198, 7, (198, 7, True)),
+        (198, 205, 9, (198, 9, True)),
+        (3, 5, 5, (3, 3, True)),
+    ],
+)
+def test_set_completion_caps_owned_at_the_total(
+    total: int, owned: int, so_normal: int, expected: tuple[int, int, bool]
+) -> None:
+    completion = set_completion(total, owned, so_normal)
+
+    assert (completion.owned, completion.so_normal, completion.complete) == expected
+    assert completion.total == total
+
+
+def test_completion_is_the_same_on_the_set_read_and_the_sets_list(
+    owned_client: TestClient,
+) -> None:
+    expected = {"sv01": SV01_COMPLETION, "sv02": SV02_COMPLETION}
+
+    listed = {
+        entry["id"]: entry["completion"]
+        for group in owned_client.get("/api/sets").json()
+        for entry in group["sets"]
+    }
+    read = {
+        set_id: owned_client.get(f"/api/sets/{set_id}/ownership").json()["completion"]
+        for set_id in expected
+    }
+
+    assert listed == expected
+    assert read == expected

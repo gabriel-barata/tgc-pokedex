@@ -11,15 +11,17 @@ import { setsStrings } from "./strings.ts";
 type SetEntry = components["schemas"]["SetEntry"];
 
 function makeSet(id: string, name: string, overrides: Partial<SetEntry> = {}): SetEntry {
+  const card_count = overrides.card_count ?? 182;
   return {
     id,
     name,
     release_date: "2025-05-30",
-    card_count: 182,
+    card_count,
     has_logo: false,
     has_symbol: false,
     tracked: false,
     downloading: false,
+    completion: { owned: 0, so_normal: 0, total: card_count, complete: false },
     ...overrides,
   };
 }

@@ -1,21 +1,34 @@
-"""Set routes: list every set, track and untrack one, and read its image progress."""
+"""Set routes: list every set, track and untrack one, read its image progress and
+the owner's ownership of its cards."""
 
 import threading
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
-from sqlalchemy import Engine, Exists, delete, exists, func, select
+from sqlalchemy import Engine, Exists, Row, and_, delete, exists, func, select
 from sqlalchemy.dialects import postgresql
 
 from tcg_pokedex.db import get_engine
-from tcg_pokedex.schemas import ArtworkKind, SeriesEntry, SetEntry, SetTracking
+from tcg_pokedex.schemas import (
+    ArtworkKind,
+    CardOwnership,
+    SeriesEntry,
+    SetCompletion,
+    SetEntry,
+    SetOwnership,
+    SetTracking,
+    Variant,
+    VariantQuantity,
+)
 from tcg_pokedex.services.image_sync import sync_images
 from tcg_pokedex.tables import (
     HOUSEHOLD_OWNER_ID,
     card_images,
     cards,
+    ownership,
     series,
     set_artwork,
     sets,
@@ -91,22 +104,40 @@ def list_sets(owner_id: Owner, engine: DB, request: Request) -> list[SeriesEntry
         .join_from(sets, series)
         .order_by(sets.c.release_date.desc(), sets.c.id.desc())
     )
+    owned = (
+        select(
+            cards.c.set_id,
+            cards.c.id,
+            cards.c.variants,
+            ownership.c.variant,
+            ownership.c.quantity,
+        )
+        .join_from(ownership, cards)
+        .where(ownership.c.owner_id == owner_id, ownership.c.quantity > 0)
+    )
     with engine.connect() as connection:
         rows = connection.execute(statement).all()
+        owned_rows = connection.execute(owned).all()
+    set_of = {row.id: row.set_id for row in owned_rows}
+    by_set: dict[str, list[CardOwnership]] = {}
+    for card in _card_ownerships(owned_rows):
+        by_set.setdefault(set_of[card.card_id], []).append(card)
     registry: DownloadRegistry = request.app.state.registry
     downloading = registry.running()
     by_series: dict[tuple[str, str], list[SetEntry]] = {}
     for row in rows:
+        total = card_count(row.official_count, row.total_count)
         by_series.setdefault((row.series_id, row.series_name), []).append(
             SetEntry(
                 id=row.id,
                 name=row.name,
                 release_date=row.release_date,
-                card_count=card_count(row.official_count, row.total_count),
+                card_count=total,
                 has_logo=row.has_logo,
                 has_symbol=row.has_symbol,
                 tracked=row.tracked,
                 downloading=row.id in downloading,
+                completion=_completion(total, by_set.get(row.id, [])),
             )
         )
     return [
@@ -121,6 +152,77 @@ def card_count(official: int, total: int) -> int:
     Variants never count apart: the catalog holds one card per number.
     """
     return official or total
+
+
+def set_completion(total: int, owned: int, so_normal: int) -> SetCompletion:
+    """A set is complete when every counted card is owned, "só normal" ones included.
+
+    Placeholder until PTCG-039: `owned` is capped at `total` and `so_normal` at the
+    capped `owned`, so owned cards beyond the printed count are not counted apart.
+    """
+    counted = min(owned, total)
+    return SetCompletion(
+        owned=counted,
+        so_normal=min(so_normal, counted),
+        total=total,
+        complete=total > 0 and counted == total,
+    )
+
+
+def card_ownership(
+    card_id: str, listed: Sequence[Variant], stored: Mapping[Variant, int]
+) -> CardOwnership:
+    """The card's quantity per listed variant, and whether it is owned.
+
+    Owning any listed variant owns the card. The wanted version is missing when only
+    Normal is owned and the card lists another variant. Unlisted variants are ignored.
+    """
+    variants = [
+        VariantQuantity(variant=variant, quantity=stored.get(variant, 0))
+        for variant in listed
+    ]
+    held = {entry.variant for entry in variants if entry.quantity > 0}
+    return CardOwnership(
+        card_id=card_id,
+        variants=variants,
+        owned=bool(held),
+        wanted_version_missing=held == {Variant.NORMAL} and len(listed) > 1,
+    )
+
+
+@router.get("/{set_id}/ownership", responses=UNKNOWN_SET)
+def get_ownership(set_id: str, owner_id: Owner, engine: DB) -> SetOwnership:
+    """Every card of the set with the owner's quantity per variant and its flags."""
+    counts = select(sets.c.official_count, sets.c.total_count).where(
+        sets.c.id == set_id
+    )
+    statement = (
+        select(cards.c.id, cards.c.variants, ownership.c.variant, ownership.c.quantity)
+        .select_from(
+            cards.outerjoin(
+                ownership,
+                and_(
+                    ownership.c.card_id == cards.c.id,
+                    ownership.c.owner_id == owner_id,
+                ),
+            )
+        )
+        .where(cards.c.set_id == set_id)
+        .order_by(cards.c.id)
+    )
+    with engine.connect() as connection:
+        printed = connection.execute(counts).first()
+        if printed is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown set")
+        rows = connection.execute(statement).all()
+    card_ownerships = _card_ownerships(rows)
+    return SetOwnership(
+        set_id=set_id,
+        completion=_completion(
+            card_count(printed.official_count, printed.total_count), card_ownerships
+        ),
+        cards=card_ownerships,
+    )
 
 
 @router.get("/{set_id}/tracking", responses=UNKNOWN_SET)
@@ -173,6 +275,27 @@ def _has_artwork(kind: ArtworkKind) -> Exists:
     return exists().where(
         set_artwork.c.set_id == sets.c.id, set_artwork.c.kind == kind.value
     )
+
+
+def _card_ownerships(rows: Iterable[Row[*tuple[Any, ...]]]) -> list[CardOwnership]:
+    """Group `id, variants, variant, quantity` rows per card, in first-seen order."""
+    listed: dict[str, list[Variant]] = {}
+    stored: dict[str, dict[Variant, int]] = {}
+    for row in rows:
+        listed.setdefault(row.id, [Variant(name) for name in row.variants])
+        quantities = stored.setdefault(row.id, {})
+        if row.variant is not None:
+            quantities[Variant(row.variant)] = row.quantity
+    return [
+        card_ownership(card_id, variants, stored[card_id])
+        for card_id, variants in listed.items()
+    ]
+
+
+def _completion(total: int, card_ownerships: Iterable[CardOwnership]) -> SetCompletion:
+    owned = [card for card in card_ownerships if card.owned]
+    so_normal = sum(card.wanted_version_missing for card in owned)
+    return set_completion(total, len(owned), so_normal)
 
 
 def _require_set(engine: Engine, set_id: str) -> None:

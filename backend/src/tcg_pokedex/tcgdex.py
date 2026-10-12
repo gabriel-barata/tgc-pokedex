@@ -9,7 +9,6 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
-from enum import StrEnum
 from importlib.metadata import version
 from typing import Annotated, Self
 from urllib.parse import quote
@@ -25,7 +24,7 @@ from pydantic import (
 )
 from pydantic.alias_generators import to_camel
 
-from tcg_pokedex.schemas import ArtworkKind
+from tcg_pokedex.schemas import ArtworkKind, Variant
 
 SOURCE = "tcgdex"
 """The provider name stored on every row and run fetched from TCGdex."""
@@ -55,16 +54,6 @@ class TcgdexError(Exception):
         super().__init__(reason)
         self.reason = reason
         self.status = status
-
-
-class Variant(StrEnum):
-    """A printing a card exists in. Declaration order is the canonical storage order."""
-
-    NORMAL = "normal"
-    REVERSE = "reverse"
-    HOLO = "holo"
-    FIRST_EDITION = "first_edition"
-    W_PROMO = "w_promo"
 
 
 @dataclass(frozen=True)
