@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 
+from tcg_pokedex.catalog_sync.adapters.postgres import PostgresCatalogRepository
 from tcg_pokedex.catalog_sync.domain import (
     CardCounts,
     Failure,
@@ -22,6 +23,8 @@ from tcg_pokedex.catalog_sync.domain import (
 )
 from tcg_pokedex.catalog_sync.fakes import InMemoryCatalogRepository
 from tcg_pokedex.catalog_sync.ports import CatalogRepository, InvalidBatchError
+from tcg_pokedex.database import create_database_engine
+from tcg_pokedex.migrations import upgrade_to_head
 from tests.catalog_sync.builders import make_card, make_series, make_set
 
 FETCHED_AT = datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
@@ -31,7 +34,17 @@ def make_fake_repository(_request: pytest.FixtureRequest) -> CatalogRepository:
     return InMemoryCatalogRepository()
 
 
-@pytest.fixture(params=[make_fake_repository], ids=["fake"])
+def make_postgres_repository(request: pytest.FixtureRequest) -> CatalogRepository:
+    database_url: str = request.getfixturevalue("empty_database_url")
+    upgrade_to_head(database_url)
+    engine = create_database_engine(database_url)
+    request.addfinalizer(engine.dispose)
+    return PostgresCatalogRepository(engine)
+
+
+@pytest.fixture(
+    params=[make_fake_repository, make_postgres_repository], ids=["fake", "postgres"]
+)
 def repository(request: pytest.FixtureRequest) -> CatalogRepository:
     factory: Callable[[pytest.FixtureRequest], CatalogRepository] = request.param
     return factory(request)
