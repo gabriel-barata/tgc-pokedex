@@ -129,8 +129,9 @@ The following gates are enforced in CI and block merging:
    carry an inline justification.
 4. Every new dependency MUST have a one-line justification in `plan.md` explaining why a few
    lines of our own code would not do.
-5. `/speckit-analyze` MUST run before `/speckit-implement`. Any violation it reports MUST be
-   either fixed or logged in Complexity Tracking.
+
+`/speckit-analyze` is optional. When it runs, every constitution violation it reports MUST be
+either fixed or logged in Complexity Tracking.
 
 ## Governance
 
@@ -149,4 +150,4 @@ The following gates are enforced in CI and block merging:
 - Runtime development guidance (e.g. the agent guidance file) MUST stay consistent with this
   constitution and MUST NOT restate or override it.
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-12
+**Version**: 3.0.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-12

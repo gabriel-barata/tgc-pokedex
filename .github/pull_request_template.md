@@ -14,7 +14,7 @@ In a section that does not apply, write "N/A" and the reason.
 ## spec-kit artifacts
 
 <!--
-spec-kit: yes → links to specs/PTCG-NNN-slug/spec.md, plan.md, tasks.md and the /speckit-analyze result.
+spec-kit: yes → links to specs/PTCG-NNN-slug/spec.md, plan.md and tasks.md (and the /speckit-analyze result, if it ran).
 spec-kit: no  → "N/A — spec-kit: no".
 -->
 

@@ -63,7 +63,6 @@ updates under concurrent writes (FR-007). A rejected request changes nothing (FR
 | Observability | No sync job. | N/A |
 | Gate 3: lint/types | Strict pyright, ruff. No suppressions planned. | ✅ |
 | Gate 4: new deps | None. | ✅ |
-| Gate 5: analyze | `/speckit-analyze` before `/speckit-implement`. | pending |
 
 **Post-design re-check (after Phase 1)**: no new violations. Keeping the rules in Python
 rather than SQL costs one extra row fetch for the sets list (R6) and keeps one source of
