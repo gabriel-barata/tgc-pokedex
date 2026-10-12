@@ -12,7 +12,10 @@ function mainNav() {
 }
 
 beforeEach(() => {
-  server.use(http.get("/api/sets", () => new Promise<never>(() => undefined)));
+  server.use(
+    http.get("/api/sets", () => new Promise<never>(() => undefined)),
+    http.get("/api/sync", () => new Promise<never>(() => undefined)),
+  );
 });
 
 describe("app shell", () => {
