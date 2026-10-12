@@ -138,6 +138,9 @@ Frontend (run from `frontend/`; needs Node 26+ and pnpm, pinned in `package.json
   rerun against the same stack.
 - `pnpm lint`, `pnpm format:check` and `pnpm typecheck`: lint, formatting and strict type
   check; warnings also fail.
+- `pnpm dlx shadcn@latest add <component>`: copy a shadcn/ui component into `src/ui/`
+  (`components.json`), then restyle it with the tokens in `src/ui/theme.css`, the
+  single source of design tokens (`docs/design.md`).
 - `pnpm generate:api`: regenerate `openapi.json` and `src/api-schema.gen.ts` from the backend.
   Run it after any backend API change and commit both files; never edit them by hand.
 

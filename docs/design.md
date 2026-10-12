@@ -13,6 +13,11 @@ invariants below hold.
   interview. Scope changed from the original card. This PR delivers the direction
   document and reference mockups. Installing the component library, coding the tokens
   and building the app shell move to PTCG-035.
+- **2026-10-12 (PTCG-035):** the tokens are now code. `frontend/src/ui/theme.css` is the
+  source of truth for every color, type, radius, shadow, spacing, breakpoint and motion
+  value. The Typography and Tokens sections now point to it instead of listing values.
+  The contrast pairs stay here as measured evidence. shadcn/ui, Tailwind CSS, the
+  motifs, the favicon and the app shell are in place (decisions 8, 9, 11, 22, 23).
 
 ## Context
 
@@ -168,7 +173,9 @@ A round cream badge in which Torchic's three-point crest-feather (orange, crest-
 tip) and Popplio's nose bubble (sky blue, pink highlight) sit side by side, slightly
 overlapping, like two friends. The wordmark "TCG Pokédex" is set in Fredoka 600 in
 `text.primary`, with "TCG" in the Torchic ink color. The badge alone is the favicon and
-the compact mark on small screens.
+the compact mark on small screens. `frontend/public/favicon.svg` is a static export of the
+`Badge` motif with the token colors written out, so re-export it whenever the badge or
+its colors change.
 
 #### 9. Character imagery: original, simplified SVG motifs
 
@@ -181,6 +188,10 @@ flat motifs inspired by the two Pokémon:
 | `motif.bubble` | Popplio's round nose bubble with a highlight | Logo, empty states, celebration puff |
 | `motif.ruff` | Popplio's scalloped white collar, as a repeatable edge | Decorative divider under section titles, bottom edge of the binder cover |
 | `motif.ember` | Small rounded ember/spark dots | Celebration particles |
+
+The motifs are React components in `frontend/src/ui/motifs/`, one file each, so they can
+be swapped. They are always decorative (hidden from assistive tech); meaning comes from
+the text next to them.
 
 Motif style: flat fills from the palette, no outlines (or a 1.5px `text.primary`
 outline only at sizes up to 24px), rounded joins, no gradients except the bubble's
@@ -405,14 +416,15 @@ never carried by motion alone. Nothing flashes.
 
 #### 22. Component library: shadcn/ui + Tailwind CSS
 
-PTCG-035 installs shadcn/ui (Radix-based components copied into our repo)
-with Tailwind CSS, whose theme is generated from the [Tokens](#tokens) below. Icons
-come from Lucide (rounded 2px stroke), plus our motifs (decision 9).
+shadcn/ui (Radix-based components copied into our repo) with Tailwind CSS, whose theme
+is the [Tokens](#tokens) file. Components live in `frontend/src/ui/` (see
+`frontend/components.json`) and are restyled with our tokens when added. Icons come from
+Lucide (rounded 2px stroke), plus our motifs (decision 9).
 
 **Why:** the craft-desk look is distinctive. Owning the component code makes it easy to
 style fully, and Radix provides accessible keyboard and ARIA behavior. Mantine was
-rejected because its default look is harder to bend this far. The plan's dependency
-justification (Quality Gate 4) goes in PTCG-035.
+rejected because its default look is harder to bend this far. The dependency
+justifications (Quality Gate 4) are in the PTCG-035 pull request.
 
 #### 23. Small screens: graceful adaptation
 
@@ -450,73 +462,61 @@ Two families, both SIL OFL and self-hosted:
 - **Nunito** (text): everything else. Card numbers and counts use tabular figures
   (`font-variant-numeric: tabular-nums`).
 
-| Token | Family / weight | Size / line height | Use |
-|---|---|---|---|
-| `type.display` | Fredoka 600 | 36 / 40 | Page titles ("Coleções") |
-| `type.title` | Fredoka 600 | 28 / 34 | Set name in the set header, detail card name |
-| `type.heading` | Fredoka 500 | 20 / 26 | Section titles ("Acompanhando", series names) |
-| `type.body` | Nunito 500 | 16 / 24 | Body text, buttons (600) |
-| `type.label` | Nunito 700 | 14 / 20 | Tile name, chips, form labels |
-| `type.caption` | Nunito 600, tabular | 12 / 16 | Card number, counts, price lines, dots legend |
+The scale is defined in [`frontend/src/ui/theme.css`](../frontend/src/ui/theme.css) as
+`--text-*` (size, line height and weight together). Use it through the matching classes:
+
+| Token / class | Family | Use |
+|---|---|---|
+| `text-display` | Fredoka | Page titles ("Coleções") |
+| `text-title` | Fredoka | Set name in the set header, detail card name |
+| `text-heading` | Fredoka | Section titles ("Acompanhando", series names) |
+| `text-body` | Nunito | Body text, buttons (with `font-semibold`) |
+| `text-label` | Nunito | Tile name, chips, form labels |
+| `text-caption` | Nunito, `tabular-nums` | Card number, counts, price lines, dots legend |
+
+`h1`–`h3` get Fredoka from the base styles; elsewhere add `font-display`.
 
 The minimum rendered text size is 12px. Never use all-caps for more than two words.
 
 ## Tokens
 
-Single source: until PTCG-035 puts these tokens into code, this table is
-the source of truth. After that, the code (Tailwind theme / CSS custom properties) is
-authoritative, and this table should point to it rather than duplicate it
-(Principle II). All values are proof-set starting points (see "proof-set" in the
-mockups) and may be tuned in feature work within this direction.
+**Source of truth: [`frontend/src/ui/theme.css`](../frontend/src/ui/theme.css)** (Tailwind
+`@theme`, emitted as CSS custom properties). This section does not repeat its values
+(Principle II). Values may be tuned in feature work within this direction. Re-measure any
+contrast pair that a change touches.
 
-### Color: primitives
+Names map one to one: the role `surface.page` is the custom property
+`--color-surface-page` and the classes `bg-surface-page`, `text-…`, `border-…`. Likewise
+`radius.md` is `rounded-md`, `shadow.lg` is `shadow-lg`, `ease.sticker` is `ease-sticker`,
+and `motion.panel` is `var(--motion-panel)` (e.g. `duration-(--motion-panel)`). Tailwind's
+default palette, radii, shadows, type sizes and easings are switched off, so only our
+tokens exist.
 
-| Token | Hex | Notes |
+### Color roles
+
+Primitives (`cream`, `bark`, `torchic`, `crest`, `popplio`, `nose`, `clay`) are for the
+roles below and for motif fills. Components use the roles.
+
+| Role | Allowed use | Never |
 |---|---|---|
-| `cream.50` | `#FFFDF8` | Raised surfaces (binder page, panels, tiles) |
-| `cream.100` | `#FBF6EC` | Page background ("paper") |
-| `cream.200` | `#F1E8D8` | Sunken: empty sleeves, bar track |
-| `cream.300` | `#E6D9C3` | Hairline borders |
-| `cream.500` | `#978466` | Dashed sleeve outline |
-| `bark.900` | `#3A2E28` | Primary text (warm dark brown) |
-| `bark.700` | `#6B5B50` | Secondary text |
-| `bark.500` | `#8A796C` | Disabled / decorative only (not for text that must be read) |
-| `torchic.200` | `#F7CDA8` | Light bar segment, tints |
-| `torchic.400` | `#E8894B` | Motif fill, sticker fill |
-| `torchic.500` | `#DE7A3E` | Motif fill (crest) |
-| `torchic.600` | `#B85A24` | Primary button, owned sticker, deep bar segment |
-| `torchic.700` | `#9A4718` | Torchic text on cream, primary button hover |
-| `crest.400` | `#F2C14E` | Highlight: crest tip, celebration particles |
-| `popplio.100` | `#E4F0F8` | Selected chip background |
-| `popplio.300` | `#9CC7E6` | Ribbon / info fills |
-| `popplio.400` | `#6FAED9` | Motif fill (bubble) |
-| `popplio.600` | `#2F6A97` | Links, focus ring |
-| `popplio.800` | `#23395B` | Deep-sea navy: selected chip text, ribbon text |
-| `nose.300` | `#F2A7B8` | Highlight: bubble highlight, celebration particles |
-| `clay.600` | `#A93A2C` | Errors (kind terracotta, never pure red) |
-
-### Color: semantic roles
-
-| Role | Value | Allowed use | Never |
-|---|---|---|---|
-| `surface.page` | `cream.100` | Page background, with faint paper grain (≤ 3% opacity noise) | Pure white |
-| `surface.raised` | `cream.50` | Binder page, panels, tiles, top bar | Under body text without a border |
-| `surface.sunken` | `cream.200` | Empty sleeves, bar track, skeletons | Large areas |
-| `border.hairline` | `cream.300` | 1px borders on raised surfaces | As the only state cue |
-| `border.sleeve` | `cream.500` | 1.5px dashed missing-sleeve outline | Solid borders of owned tiles |
-| `text.primary` | `bark.900` | All primary text | n/a |
-| `text.secondary` | `bark.700` | Numbers, metadata, price lines | Disabled text |
-| `text.accent` | `torchic.700` | "TCG" in the wordmark, small emphasis on cream | Long text |
-| `action.primary.bg` / `.fg` | `torchic.600` / `#FFFFFF` | Primary buttons, owned sticker | Large fills |
-| `action.primary.hover` | `torchic.700` | Hover/pressed primary | n/a |
-| `owned.mark` | `torchic.600` | Owned sticker, filled variant dot, deep bar | Decoration |
-| `progress.partial` | `torchic.200` + `torchic.600` stripes | Normal-only bar segment | Without stripes |
-| `link` | `popplio.600` | Links, text buttons | Body text |
-| `focus.ring` | `popplio.600` | 2px focus outline, 2px offset | n/a |
-| `selected.bg` / `.fg` | `popplio.100` / `popplio.800` | Active filter chip, selected item | Owned state |
-| `ribbon.bg` / `.fg` | `popplio.300` / `popplio.800` | Wanted-version ribbon, info | n/a |
-| `danger` | `clay.600` | Error text and icons | Prices, deltas |
-| `highlight.*` | `crest.400`, `nose.300` | Celebrations, logo | UI states |
+| `surface.page` | Page background, with faint paper grain (≤ 3% opacity noise) | Pure white |
+| `surface.raised` | Binder page, panels, tiles, top bar | Under body text without a border |
+| `surface.sunken` | Empty sleeves, bar track, skeletons | Large areas |
+| `border.hairline` | 1px borders on raised surfaces | As the only state cue |
+| `border.sleeve` | 1.5px dashed missing-sleeve outline | Solid borders of owned tiles |
+| `text.primary` | All primary text | n/a |
+| `text.secondary` | Numbers, metadata, price lines | Disabled text |
+| `text.accent` | "TCG" in the wordmark, small emphasis on cream | Long text |
+| `action.primary.bg` / `.fg` | Primary buttons, owned sticker | Large fills |
+| `action.primary.hover` | Hover/pressed primary | n/a |
+| `owned.mark` | Owned sticker, filled variant dot, deep bar | Decoration |
+| `progress.partial` + `progress.partial.stripe` | Normal-only bar segment | Without stripes |
+| `link` | Links, text buttons | Body text |
+| `focus.ring` | 2px focus outline, 2px offset | n/a |
+| `selected.bg` / `.fg` | Active filter chip, selected item, current nav link | Owned state |
+| `ribbon.bg` / `.fg` | Wanted-version ribbon, info | n/a |
+| `danger` | Error text and icons | Prices, deltas |
+| `highlight.crest`, `highlight.nose` | Celebrations, logo | UI states |
 
 ### Contrast pairs (WCAG 2.2, measured)
 
@@ -542,22 +542,27 @@ mockups) and may be tuned in feature work within this direction.
 
 ### Shape, depth, spacing, motion
 
-| Token | Value | Use |
-|---|---|---|
-| `radius.sm` | 8px | Card image inside a sleeve, small stickers |
-| `radius.md` | 12px | Tiles (sleeves), inputs, binder covers |
-| `radius.lg` | 16px | Binder page, panels, sheets |
-| `radius.pill` | 999px | Buttons, chips, the spine bar |
-| `shadow.sm` | `0 1px 2px rgb(92 64 36 / 0.08)` | Tiles at rest |
-| `shadow.md` | `0 4px 12px rgb(92 64 36 / 0.10)` | Tile hover, stickers |
-| `shadow.lg` | `0 16px 40px rgb(92 64 36 / 0.16)` | Detail panel, sheets |
-| `space.*` | 4 · 8 · 12 · 16 · 20 · 24 · 32 · 48 · 64 px | 4px base scale |
-| `motion.fast` | 140ms | Hover, press |
-| `motion.base` | 200ms | Fades, chip changes |
-| `motion.panel` | 260ms | Detail panel / sheet in |
-| `motion.celebrate` | 600–1200ms | Owned puff, set complete |
-| `ease.out` | `cubic-bezier(0.2, 0.8, 0.2, 1)` | Default |
-| `ease.sticker` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Stickers only (small overshoot) |
+| Token | Use |
+|---|---|
+| `radius.sm` | Card image inside a sleeve, small stickers |
+| `radius.md` | Tiles (sleeves), inputs, binder covers |
+| `radius.lg` | Binder page, panels, sheets |
+| `radius.pill` | Buttons, chips, the spine bar |
+| `shadow.sm` | Tiles at rest |
+| `shadow.md` | Tile hover, stickers |
+| `shadow.lg` | Detail panel, sheets |
+| `spacing` | 4px base; use the steps 4 · 8 · 12 · 16 · 20 · 24 · 32 · 48 · 64 px |
+| `breakpoint.sm` / `.lg` | The 640px and 1024px steps of decision 23 |
+| `motion.fast` | Hover, press |
+| `motion.base` | Fades, chip changes |
+| `motion.panel` | Detail panel / sheet in |
+| `motion.celebrate.puff` / `.set` | Owned puff, set complete |
+| `motion.reduced` | The only transition length under reduced motion |
+| `ease.out` | Default |
+| `ease.sticker` | Stickers only (small overshoot) |
+
+The reduced-motion baseline (decision 21) and the focus ring (decision 24) are global
+rules in the same file.
 
 Stickers (the owned button, `×N`, ribbons) have a 2px `surface.raised` edge and
 `shadow.md`, so they look slightly raised, like real stickers.
