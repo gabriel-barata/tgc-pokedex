@@ -17,6 +17,8 @@ from tcg_pokedex.tcgdex.http import RequestFailedError, TcgdexHttp
 EN_CARDS_URL = "https://api.tcgdex.net/v2/en/cards"
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 NOT_FOUND = 404
+UNIVERSAL_PATH = "/univ/"
+SYMBOL_FALLBACK_PATH = "/pt/"
 
 
 class _EnglishCard(BaseModel):
@@ -78,10 +80,24 @@ class TcgdexImageProvider:
     def fetch_artwork(
         self, set_id: str, kind: ArtworkKind, url: str
     ) -> bytes | Missing | ImageFailure:
+        """The artwork at `{url}.webp`.
+
+        TCGdex answers 404 for every symbol under `/univ/`, which is where the
+        catalog points, while the same path under `/pt/` exists. Such a symbol is
+        retried once there.
+        """
         try:
-            return self._download(f"{url}.webp")
+            content = self._download(f"{url}.webp")
+            if (
+                isinstance(content, Missing)
+                and kind is ArtworkKind.SYMBOL
+                and UNIVERSAL_PATH in url
+            ):
+                fallback = url.replace(UNIVERSAL_PATH, SYMBOL_FALLBACK_PATH, 1)
+                content = self._download(f"{fallback}.webp")
         except RequestFailedError as error:
             return ImageFailure.of_artwork(set_id, kind, error.reason)
+        return content
 
     def _download(self, url: str) -> bytes | Missing:
         """The WebP at `url`. Raises `RequestFailedError`, also for a bad body."""
