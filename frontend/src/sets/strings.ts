@@ -1,0 +1,15 @@
+export const setsStrings = {
+  trackedSets: "Acompanhando",
+  allSets: "Todas as coleções",
+  track: "Acompanhar",
+  tracking: "Acompanhando",
+  noTrackedSets: "Nenhuma coleção acompanhada",
+  seeAllSets: "Ver todas as coleções",
+  syncingImages: "Imagens sendo sincronizadas",
+  loading: "Carregando coleções…",
+  loadError: "Não foi possível carregar as coleções.",
+  retry: "Tentar novamente",
+  emptyCatalog: "Nenhuma coleção sincronizada ainda.",
+  trackError: (setName: string) => `Não foi possível atualizar ${setName}.`,
+  cardCount: (count: number) => `${String(count)} ${count === 1 ? "carta" : "cartas"}`,
+} as const;
