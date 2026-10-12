@@ -1,0 +1,2 @@
+CRON_TZ=America/Sao_Paulo
+0 4 * * 1 tcg sync all

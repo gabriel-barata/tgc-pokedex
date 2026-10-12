@@ -4,6 +4,7 @@
 !backend/alembic.ini
 !backend/migrations/
 !backend/src/
+!deploy/crontab
 !frontend/package.json
 !frontend/pnpm-lock.yaml
 !frontend/pnpm-workspace.yaml

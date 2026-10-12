@@ -4,7 +4,7 @@ services:
   app:
     image: ghcr.io/gabriel-barata/tcg-pokedex:${TCG_POKEDEX_IMAGE_TAG:-latest}
     restart: unless-stopped
-    environment:
+    environment: &app-environment
       TCG_POKEDEX_DATABASE_URL: postgresql+psycopg://tcg_pokedex:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/tcg_pokedex
     volumes:
       - images:/data/images
@@ -22,6 +22,30 @@ services:
       - wud.trigger.docker.autoupdate.enabled=true
       - wud.rollback.enable=true
       - wud.display.name=TCG Pokédex
+      - wud.link.template=https://github.com/gabriel-barata/tgc-pokedex/commits/main
+
+  worker:
+    image: ghcr.io/gabriel-barata/tcg-pokedex:${TCG_POKEDEX_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    command: ["supercronic", "-passthrough-logs", "/app/crontab"]
+    environment: *app-environment
+    volumes:
+      - images:/data/images
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "grep", "-q", "supercronic", "/proc/1/cmdline"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      start_interval: 2s
+    labels:
+      - wud.watch=true
+      - wud.watch.digest=true
+      - wud.trigger.docker.autoupdate.enabled=true
+      - wud.rollback.enable=true
+      - wud.display.name=TCG Pokédex worker
       - wud.link.template=https://github.com/gabriel-barata/tgc-pokedex/commits/main
 
   postgres:
