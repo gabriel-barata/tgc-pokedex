@@ -1,13 +1,39 @@
 """The `tcg` console command: `tcg sync catalog` and `tcg sync images`."""
 
 import argparse
-from collections.abc import Sequence
+import time
+from collections.abc import Callable, Sequence
+from datetime import UTC, datetime
 from typing import NoReturn
 
-from tcg_pokedex.catalog_sync.command import run_catalog_sync
-from tcg_pokedex.clock.adapters.system import SystemClock
+import httpx2
+
 from tcg_pokedex.config import Settings
-from tcg_pokedex.image_cache.command import run_image_sync
+from tcg_pokedex.db import create_database_engine
+from tcg_pokedex.services.catalog_sync import sync_catalog
+from tcg_pokedex.services.image_sync import sync_images
+from tcg_pokedex.services.sync_runs import report_run
+from tcg_pokedex.tcgdex import Tcgdex
+
+
+def run_sync(
+    target: str,
+    settings: Settings,
+    now: Callable[[], datetime] = lambda: datetime.now(UTC),
+    transport: httpx2.BaseTransport | None = None,
+    sleep: Callable[[float], None] = time.sleep,
+) -> int:
+    """Run the `catalog` or `images` sync; return its exit code (see `report_run`)."""
+    engine = create_database_engine(str(settings.database_url))
+    try:
+        with Tcgdex(transport=transport, sleep=sleep) as tcgdex:
+            if target == "images":
+                return report_run(
+                    lambda: sync_images(engine, tcgdex, settings.image_dir, now=now)
+                )
+            return report_run(lambda: sync_catalog(engine, tcgdex, now))
+    finally:
+        engine.dispose()
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -30,6 +56,4 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> NoReturn:
-    target: str = _parser().parse_args(argv).target
-    run = run_image_sync if target == "images" else run_catalog_sync
-    raise SystemExit(run(Settings(), SystemClock()))
+    raise SystemExit(run_sync(_parser().parse_args(argv).target, Settings()))

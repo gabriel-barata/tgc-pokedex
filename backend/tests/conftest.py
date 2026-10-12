@@ -2,8 +2,11 @@ from collections.abc import Iterator
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import create_engine, make_url, text
+from sqlalchemy import Engine, create_engine, make_url, text
 from testcontainers.community.postgres import PostgresContainer
+
+from tcg_pokedex.db import create_database_engine
+from tcg_pokedex.migrations import upgrade_to_head
 
 
 @pytest.fixture(scope="session")
@@ -30,3 +33,17 @@ def empty_database_url(postgres_url: str) -> Iterator[str]:
         with admin.connect() as connection:
             connection.execute(text(f'DROP DATABASE "{name}" WITH (FORCE)'))
         admin.dispose()
+
+
+@pytest.fixture
+def database_url(empty_database_url: str) -> str:
+    """URL of a fresh database migrated to the latest revision."""
+    upgrade_to_head(empty_database_url)
+    return empty_database_url
+
+
+@pytest.fixture
+def engine(database_url: str) -> Iterator[Engine]:
+    engine = create_database_engine(database_url)
+    yield engine
+    engine.dispose()

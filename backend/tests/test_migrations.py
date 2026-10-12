@@ -3,9 +3,10 @@ import sys
 
 import pytest
 from alembic import command
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, select
 
 from tcg_pokedex.migrations import alembic_config, upgrade_to_head
+from tcg_pokedex.tables import HOUSEHOLD_OWNER_ID, HOUSEHOLD_OWNER_NAME, owners
 
 SCHEMA = {
     "alembic_version",
@@ -67,3 +68,16 @@ def test_module_upgrades_the_configured_database(
     runpy.run_module("tcg_pokedex.migrations", run_name="__main__")
 
     assert {"owners", "cards"} <= table_names(empty_database_url)
+
+
+def test_migrations_seed_exactly_the_household_owner(
+    empty_database_url: str,
+) -> None:
+    upgrade_to_head(empty_database_url)
+
+    engine = create_engine(empty_database_url)
+    with engine.connect() as connection:
+        rows = connection.execute(select(owners.c.id, owners.c.name)).all()
+    engine.dispose()
+
+    assert [tuple(row) for row in rows] == [(HOUSEHOLD_OWNER_ID, HOUSEHOLD_OWNER_NAME)]

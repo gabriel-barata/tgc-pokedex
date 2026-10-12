@@ -108,7 +108,9 @@ Whole stack (run from the repo root; needs Docker):
   `deploy/README.md` covers install, rollback (pin `TCG_POKEDEX_IMAGE_TAG` to a commit sha)
   and the expand/contract-only migration rule.
 
-Backend (run from `backend/`; needs `uv`, which installs Python 3.13):
+Backend (run from `backend/`; needs `uv`, which installs Python 3.13). Layout under
+`src/tcg_pokedex/` (constitution, Principle III): `routes/<resource>.py` for the API,
+`services/<job>.py` for the syncs, `tables.py`, `schemas.py` and `tcgdex.py`; tests mirror it.
 
 - `uv sync`: install dependencies.
 - `uv run uvicorn tcg_pokedex.app:create_app --factory --reload`: dev server on :8000.
@@ -123,7 +125,7 @@ Backend (run from `backend/`; needs `uv`, which installs Python 3.13):
   git-ignored). Same output and exit codes as `tcg sync catalog`. Tracking a set through
   `PUT /api/sets/{set_id}/tracking` also downloads that set's card images in the background.
 - `uv run alembic revision --autogenerate -m "<summary>"`: draft a migration from the tables
-  in `tcg_pokedex/schema.py` (dev database at head first), then review it by hand.
+  in `tcg_pokedex/tables.py` (dev database at head first), then review it by hand.
 - `uv run pytest`: run the tests. Database tests start Postgres with Testcontainers, so
   Docker must be running.
 - `uv run pytest --cov`: run the tests with the coverage gate (branch coverage, 80% floor).
