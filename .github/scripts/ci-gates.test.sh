@@ -143,7 +143,7 @@ test_tdd_allows_other_commits_between_test_and_feat() {
     repo="$(new_repo)"
     commit_files "$repo" "test(PTCG-099): add failing test" frontend/src/health/Health.test.tsx
     commit_files "$repo" "build(PTCG-099): add a dependency" frontend/package.json
-    commit_files "$repo" "test(PTCG-099): add a test helper" frontend/src/test-utils.tsx
+    commit_files "$repo" "test(PTCG-099): add a test helper" frontend/src/testing/render.tsx
     commit_files "$repo" "feat(PTCG-099): make it pass" frontend/src/health/Health.tsx
     expect_pass tdd_gate "$repo"
 }
@@ -160,7 +160,7 @@ test_tdd_ignores_test_commit_without_test_files() {
 test_tdd_counts_every_test_location() {
     local repo path
     for path in backend/tests/test_a.py frontend/src/a/A.test.ts frontend/src/a/A.test.tsx \
-        frontend/src/test-setup.ts frontend/e2e/home.spec.ts frontend/e2e/global-setup.ts \
+        frontend/src/testing/setup.ts frontend/e2e/home.spec.ts frontend/e2e/global-setup.ts \
         .specify/tests/x.test.sh .github/scripts/ci-gates.test.sh; do
         repo="$(new_repo)"
         commit_files "$repo" "test(PTCG-099): add failing test" "$path"
@@ -185,7 +185,7 @@ test_tdd_exempts_feat_without_source_changes() {
     repo="$(new_repo)"
     commit_files "$repo" "feat(PTCG-099): config, docs and generated code" \
         backend/pyproject.toml frontend/package.json CLAUDE.md .github/workflows/ci.yml \
-        frontend/openapi.json frontend/src/api-schema.gen.ts frontend/src/a/A.test.tsx
+        frontend/openapi.json frontend/src/api/schema.gen.ts frontend/src/a/A.test.tsx
     expect_pass tdd_gate "$repo"
 }
 

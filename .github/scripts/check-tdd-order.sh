@@ -9,7 +9,7 @@ set -euo pipefail
 
 is_test_file() {
     case "$1" in
-        backend/tests/* | .specify/tests/* | frontend/src/test-* | frontend/e2e/*) return 0 ;;
+        backend/tests/* | .specify/tests/* | frontend/src/testing/* | frontend/e2e/*) return 0 ;;
         frontend/*.test.ts | frontend/*.test.tsx | .github/scripts/*.test.sh) return 0 ;;
     esac
     return 1
