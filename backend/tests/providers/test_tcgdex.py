@@ -11,8 +11,7 @@ from importlib.metadata import version
 
 import pytest
 
-from tcg_pokedex.schemas import ArtworkKind, Variant
-from tcg_pokedex.tcgdex import (
+from tcg_pokedex.providers.tcgdex import (
     MAX_IMAGE_BYTES,
     Card,
     CardSet,
@@ -21,6 +20,8 @@ from tcg_pokedex.tcgdex import (
     TcgdexError,
     parse_card,
 )
+from tcg_pokedex.views.images import ArtworkKind
+from tcg_pokedex.views.ownership import Variant
 from tests.helpers import (
     FIXTURES,
     HAPPY,

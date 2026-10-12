@@ -13,8 +13,7 @@ from sqlalchemy import Engine, select
 
 from tcg_pokedex.cli import run_sync
 from tcg_pokedex.config import Settings
-from tcg_pokedex.schemas import RunStatus
-from tcg_pokedex.services.catalog_sync import (
+from tcg_pokedex.jobs.catalog_sync import (
     CardCounts,
     Failure,
     KindCounts,
@@ -22,8 +21,9 @@ from tcg_pokedex.services.catalog_sync import (
     SetCounts,
     SyncResult,
 )
-from tcg_pokedex.services.sync_runs import SyncRun, get_run
-from tcg_pokedex.tables import cards, sets
+from tcg_pokedex.models.catalog import Card, Set
+from tcg_pokedex.models.sync_runs import get_run
+from tcg_pokedex.views.sync import RunStatus, SyncRun
 from tests.helpers import (
     FIXTURES,
     HAPPY,
@@ -98,7 +98,7 @@ def test_a_first_run_stores_the_physical_catalog_and_exits_0(
         "sync.run.finished",
     ]
     with engine.connect() as connection:
-        stored = connection.execute(select(cards)).mappings().all()
+        stored = connection.execute(select(Card)).mappings().all()
     assert {card["id"]: card["variants"] for card in stored} == {
         "sv01-001": ["normal", "reverse"],
         "sv01-002": ["normal", "reverse"],
@@ -132,8 +132,7 @@ def test_a_second_run_updates_changed_rows_only(
     )
     with engine.connect() as connection:
         names = {
-            row.id: row.name
-            for row in connection.execute(select(cards.c.id, cards.c.name))
+            row.id: row.name for row in connection.execute(select(Card.id, Card.name))
         }
     assert names == {"sv01-001": "Pineco Renomeado", "sv01-002": "Heracross"}
 
@@ -152,7 +151,7 @@ def test_failures_make_a_partial_run_that_exits_1(
     )
     assert [line["event"] for line in outcome.log].count("sync.failure") == 2
     with engine.connect() as connection:
-        assert list(connection.scalars(select(cards.c.id))) == ["sv01-001"]
+        assert list(connection.scalars(select(Card.id))) == ["sv01-001"]
 
 
 def test_an_unavailable_index_fails_the_run_before_any_write(
@@ -164,7 +163,7 @@ def test_an_unavailable_index_fails_the_run_before_any_write(
     assert outcome.run.status is RunStatus.FAILED
     assert outcome.run.error == "HTTP 500 after 3 attempts"
     with engine.connect() as connection:
-        assert list(connection.scalars(select(sets.c.id))) == []
+        assert list(connection.scalars(select(Set.id))) == []
 
 
 def test_an_unreachable_store_exits_2_and_logs_the_error(

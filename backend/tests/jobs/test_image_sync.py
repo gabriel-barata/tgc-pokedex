@@ -16,8 +16,7 @@ from sqlalchemy import Engine, insert, select, update
 
 from tcg_pokedex.cli import run_sync
 from tcg_pokedex.config import Settings
-from tcg_pokedex.schemas import CardSize, RunStatus
-from tcg_pokedex.services.image_sync import (
+from tcg_pokedex.jobs.image_sync import (
     CardPlan,
     CardToResolve,
     ImageCounts,
@@ -29,8 +28,13 @@ from tcg_pokedex.services.image_sync import (
     sync_images,
     write_file,
 )
-from tcg_pokedex.services.sync_runs import SyncRun, get_run
-from tcg_pokedex.tables import HOUSEHOLD_OWNER_ID, card_images, cards, tracked_sets
+from tcg_pokedex.models.catalog import Card
+from tcg_pokedex.models.images import CardImage
+from tcg_pokedex.models.owner import HOUSEHOLD_OWNER_ID
+from tcg_pokedex.models.sync_runs import get_run
+from tcg_pokedex.models.tracking import TrackedSet
+from tcg_pokedex.views.images import CardSize
+from tcg_pokedex.views.sync import RunStatus, SyncRun
 from tests.helpers import (
     PIXEL,
     FixtureRoutes,
@@ -94,7 +98,7 @@ def sync(
 
 def stored_images(engine: Engine) -> dict[str, tuple[str | None, datetime]]:
     with engine.connect() as connection:
-        rows = connection.execute(select(card_images))
+        rows = connection.execute(select(CardImage))
         return {row.card_id: (row.language, row.fetched_at) for row in rows}
 
 
@@ -128,7 +132,7 @@ def test_a_second_run_skips_pt_images_upgrades_english_and_retries_failures(
     sync(seeded, image_dir, FIRST_RUN)
     with seeded.begin() as connection:
         connection.execute(
-            update(cards).where(cards.c.id == "sv01-002").values(image_url=f"{PT}/002")
+            update(Card).where(Card.id == "sv01-002").values(image_url=f"{PT}/002")
         )
 
     run, served = sync(
@@ -164,7 +168,7 @@ def test_the_command_caches_tracked_sets_and_every_sets_artwork_once(
     )
     with engine.begin() as connection:
         connection.execute(
-            insert(tracked_sets).values(
+            insert(TrackedSet).values(
                 owner_id=HOUSEHOLD_OWNER_ID, set_id="sv01", tracked_at=START
             )
         )

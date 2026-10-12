@@ -15,14 +15,14 @@ from sqlalchemy import Engine, insert, select
 
 from tcg_pokedex.cli import run_sync
 from tcg_pokedex.config import Settings
-from tcg_pokedex.schemas import RunStatus, SyncKind
-from tcg_pokedex.services.sync_runs import (
+from tcg_pokedex.models.sync_runs import (
     INTERRUPTED,
+    SyncRunRow,
     claim_syncs,
     join_syncs,
     release_syncs,
 )
-from tcg_pokedex.tables import sync_runs
+from tcg_pokedex.views.sync import RunStatus, SyncKind
 from tests.helpers import (
     HAPPY,
     PIXEL,
@@ -64,8 +64,8 @@ def command(
 def stored_runs(engine: Engine) -> list[tuple[str, str]]:
     with engine.connect() as connection:
         rows = connection.execute(
-            select(sync_runs.c.kind, sync_runs.c.status).order_by(
-                sync_runs.c.started_at, sync_runs.c.kind
+            select(SyncRunRow.kind, SyncRunRow.status).order_by(
+                SyncRunRow.started_at, SyncRunRow.kind
             )
         ).all()
     return [(row.kind, row.status) for row in rows]
@@ -136,7 +136,7 @@ def test_claiming_closes_the_runs_a_dead_process_left_running(
 ) -> None:
     with engine.begin() as connection:
         connection.execute(
-            insert(sync_runs).values(
+            insert(SyncRunRow).values(
                 id=uuid4(),
                 kind=SyncKind.CATALOG,
                 source="tcgdex",
@@ -150,5 +150,5 @@ def test_claiming_closes_the_runs_a_dead_process_left_running(
     release_syncs(claimed)
 
     with engine.connect() as connection:
-        row = connection.execute(select(sync_runs)).mappings().one()
+        row = connection.execute(select(SyncRunRow)).mappings().one()
     assert (row["status"], row["error"]) == ("failed", INTERRUPTED)

@@ -13,9 +13,13 @@ from sqlalchemy import Engine, insert
 
 from tcg_pokedex.app import create_app
 from tcg_pokedex.config import Settings
-from tcg_pokedex.schemas import RunStatus, SyncKind
-from tcg_pokedex.services.sync_runs import INTERRUPTED, claim_syncs, release_syncs
-from tcg_pokedex.tables import sync_runs
+from tcg_pokedex.models.sync_runs import (
+    INTERRUPTED,
+    SyncRunRow,
+    claim_syncs,
+    release_syncs,
+)
+from tcg_pokedex.views.sync import RunStatus, SyncKind
 from tests.helpers import HAPPY, PIXEL, FixtureRoutes, Reply, ok
 
 START = datetime(2026, 10, 12, 4, 0, tzinfo=UTC)
@@ -45,7 +49,7 @@ def store_running_runs(engine: Engine, count: int) -> None:
     """Runs left running by a dead process, one minute apart, oldest first."""
     with engine.begin() as connection:
         connection.execute(
-            insert(sync_runs),
+            insert(SyncRunRow),
             [
                 {
                     "id": uuid4(),

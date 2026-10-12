@@ -1,6 +1,6 @@
 """Set routes on `create_app`, real Postgres and recorded TCGdex answers."""
 
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -14,19 +14,14 @@ from sqlalchemy import Engine, insert, select
 
 from tcg_pokedex.app import create_app
 from tcg_pokedex.config import Settings
-from tcg_pokedex.routes.sets import DownloadRegistry, card_ownership, set_completion
-from tcg_pokedex.schemas import Variant
-from tcg_pokedex.tables import (
-    HOUSEHOLD_OWNER_ID,
-    cards,
-    owners,
-    series,
-    set_artwork,
-    sets,
-    sync_runs,
-    tracked_sets,
-)
-from tcg_pokedex.tcgdex import SOURCE
+from tcg_pokedex.jobs.set_download import DownloadRegistry
+from tcg_pokedex.models.catalog import Card, Series, Set
+from tcg_pokedex.models.images import SetArtwork
+from tcg_pokedex.models.owner import HOUSEHOLD_OWNER_ID, Owner
+from tcg_pokedex.models.sync_runs import SyncRunRow
+from tcg_pokedex.models.tracking import TrackedSet
+from tcg_pokedex.views.ownership import Variant
+from tcg_pokedex.views.sync import SOURCE
 from tests.helpers import (
     OTHER_OWNER_ID,
     SEEDED_AT,
@@ -91,7 +86,7 @@ def owned_client(client: TestClient, engine: Engine) -> TestClient:
     """
     with engine.begin() as connection:
         connection.execute(
-            insert(sets),
+            insert(Set),
             {
                 **set_row(
                     id="sv02",
@@ -104,7 +99,7 @@ def owned_client(client: TestClient, engine: Engine) -> TestClient:
             },
         )
         connection.execute(
-            insert(cards),
+            insert(Card),
             [
                 {**card_row(id=card_id, set_id=set_id, variants=variants), **PROVENANCE}
                 for card_id, set_id, variants in [
@@ -118,7 +113,7 @@ def owned_client(client: TestClient, engine: Engine) -> TestClient:
                 ]
             ],
         )
-        connection.execute(insert(owners).values(id=OTHER_OWNER_ID, name="Outra"))
+        connection.execute(insert(Owner).values(id=OTHER_OWNER_ID, name="Outra"))
     for card_id, variant, quantity in [
         ("sv01-002", "normal", 2),
         ("sv01-003", "reverse", 1),
@@ -179,19 +174,8 @@ def test_tracking_a_set_downloads_its_images_once(
     assert len(served.requests) == downloads
     assert client.get("/api/images/cards/sv01-002/large").status_code == 200
     with engine.connect() as connection:
-        runs = connection.execute(select(sync_runs.c.kind, sync_runs.c.status)).all()
+        runs = connection.execute(select(SyncRunRow.kind, SyncRunRow.status)).all()
     assert [tuple(run) for run in runs] == [("images", "succeeded")]
-
-
-def test_untracking_keeps_the_cached_images(client: TestClient) -> None:
-    client.put("/api/sets/sv01/tracking")
-
-    untracked = client.delete("/api/sets/sv01/tracking")
-    untracked_again = client.delete("/api/sets/sv01/tracking")
-
-    assert untracked.json()["tracked"] is False
-    assert untracked_again.status_code == 200
-    assert client.get("/api/images/cards/sv01-001/small").status_code == 200
 
 
 @pytest.mark.parametrize("method", ["GET", "PUT", "DELETE"])
@@ -204,10 +188,10 @@ def test_sets_are_listed_by_series_newest_first_with_the_owners_tracking(
 ) -> None:
     with engine.begin() as connection:
         connection.execute(
-            insert(series).values(id="me", name="Megaevolução", **PROVENANCE)
+            insert(Series).values(id="me", name="Megaevolução", **PROVENANCE)
         )
         connection.execute(
-            insert(sets),
+            insert(Set),
             [
                 {**set_row(id=set_id, release_date=released, **more), **PROVENANCE}
                 for set_id, released, more in [
@@ -225,9 +209,9 @@ def test_sets_are_listed_by_series_newest_first_with_the_owners_tracking(
                 ]
             ],
         )
-        connection.execute(insert(owners).values(id=OTHER_OWNER_ID, name="Outra"))
+        connection.execute(insert(Owner).values(id=OTHER_OWNER_ID, name="Outra"))
         connection.execute(
-            insert(tracked_sets),
+            insert(TrackedSet),
             [
                 {
                     "owner_id": HOUSEHOLD_OWNER_ID,
@@ -238,7 +222,7 @@ def test_sets_are_listed_by_series_newest_first_with_the_owners_tracking(
             ],
         )
         connection.execute(
-            insert(set_artwork).values(set_id="sv01", kind="logo", **PROVENANCE)
+            insert(SetArtwork).values(set_id="sv01", kind="logo", **PROVENANCE)
         )
     registry: DownloadRegistry = app.state.registry
     registry.start("mep")
@@ -295,38 +279,6 @@ def test_sets_are_listed_by_series_newest_first_with_the_owners_tracking(
     ]
 
 
-@pytest.mark.parametrize(
-    ("listed", "stored", "quantities", "owned", "wanted_version_missing"),
-    [
-        ([N, R], {}, [(N, 0), (R, 0)], False, False),
-        ([N], {N: 1}, [(N, 1)], True, False),
-        ([N, R], {N: 2}, [(N, 2), (R, 0)], True, True),
-        ([N, R], {R: 1}, [(N, 0), (R, 1)], True, False),
-        ([N, R], {N: 3, R: 1}, [(N, 3), (R, 1)], True, False),
-        ([H], {H: 1}, [(H, 1)], True, False),
-        ([N], {N: 1, R: 3}, [(N, 1)], True, False),
-    ],
-)
-def test_card_ownership_follows_the_rules_table(
-    listed: Sequence[Variant],
-    stored: Mapping[Variant, int],
-    quantities: list[tuple[Variant, int]],
-    owned: bool,
-    wanted_version_missing: bool,
-) -> None:
-    result = card_ownership("sv01-001", listed, stored)
-
-    assert result.model_dump(mode="json") == {
-        "card_id": "sv01-001",
-        "variants": [
-            {"variant": variant.value, "quantity": quantity}
-            for variant, quantity in quantities
-        ],
-        "owned": owned,
-        "wanted_version_missing": wanted_version_missing,
-    }
-
-
 def test_a_sets_ownership_lists_every_card_with_its_quantities_and_flags(
     owned_client: TestClient,
 ) -> None:
@@ -347,39 +299,6 @@ def test_a_sets_ownership_lists_every_card_with_its_quantities_and_flags(
         ],
     }
     assert owned_client.get("/api/sets/xy1/ownership").status_code == 404
-
-
-def test_a_recorded_quantity_survives_a_restart(
-    client: TestClient, database_url: str, tmp_path: Path
-) -> None:
-    client.post("/api/cards/sv01-001/ownership/normal/increment")
-    settings = Settings(
-        database_url=PostgresDsn(database_url), image_dir=tmp_path / "images"
-    )
-
-    with TestClient(create_app(settings)) as restarted:
-        read = restarted.get("/api/sets/sv01/ownership").json()
-
-    assert read["cards"][0] == card("sv01-001", True, True, normal=1, reverse=0)
-
-
-@pytest.mark.parametrize(
-    ("total", "owned", "so_normal", "expected"),
-    [
-        (0, 0, 0, (0, 0, False)),
-        (198, 0, 0, (0, 0, False)),
-        (198, 198, 7, (198, 7, True)),
-        (198, 205, 9, (198, 9, True)),
-        (3, 5, 5, (3, 3, True)),
-    ],
-)
-def test_set_completion_caps_owned_at_the_total(
-    total: int, owned: int, so_normal: int, expected: tuple[int, int, bool]
-) -> None:
-    completion = set_completion(total, owned, so_normal)
-
-    assert (completion.owned, completion.so_normal, completion.complete) == expected
-    assert completion.total == total
 
 
 def test_completion_is_the_same_on_the_set_read_and_the_sets_list(

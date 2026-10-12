@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from tcg_pokedex.app import create_app
 from tcg_pokedex.config import Settings
-from tcg_pokedex.services.image_sync import write_file
+from tcg_pokedex.jobs.image_store import write_file
 from tests.helpers import PIXEL
 
 

@@ -16,8 +16,11 @@ from uuid import UUID
 import httpx2
 from sqlalchemy import Engine, insert
 
-from tcg_pokedex.tables import HOUSEHOLD_OWNER_ID, cards, ownership, series, sets
-from tcg_pokedex.tcgdex import SOURCE, Tcgdex
+from tcg_pokedex.models.catalog import Card, Series, Set
+from tcg_pokedex.models.owner import HOUSEHOLD_OWNER_ID
+from tcg_pokedex.models.ownership import Ownership
+from tcg_pokedex.providers.tcgdex import Tcgdex
+from tcg_pokedex.views.sync import SOURCE
 
 FIXTURES = Path(__file__).parent / "fixtures"
 PT_API = "https://api.tcgdex.net/v2/pt/"
@@ -150,9 +153,9 @@ def seed(
     provenance = {"source": SOURCE, "fetched_at": SEEDED_AT}
     with engine.begin() as connection:
         connection.execute(
-            insert(series).values(id="sv", name="Escarlate e Violeta", **provenance)
+            insert(Series).values(id="sv", name="Escarlate e Violeta", **provenance)
         )
-        for table, rows in ((sets, set_rows), (cards, card_rows)):
+        for table, rows in ((Set, set_rows), (Card, card_rows)):
             if rows:
                 connection.execute(
                     insert(table), [{**row, **provenance} for row in rows]
@@ -169,7 +172,7 @@ def own(
     """Store an owner's quantity of one card variant, as the ownership routes would."""
     with engine.begin() as connection:
         connection.execute(
-            insert(ownership).values(
+            insert(Ownership).values(
                 owner_id=owner_id, card_id=card_id, variant=variant, quantity=quantity
             )
         )

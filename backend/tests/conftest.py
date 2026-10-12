@@ -5,8 +5,7 @@ import pytest
 from sqlalchemy import Engine, create_engine, make_url, text
 from testcontainers.community.postgres import PostgresContainer
 
-from tcg_pokedex.db import create_database_engine
-from tcg_pokedex.migrations import upgrade_to_head
+from tcg_pokedex.database import create_database_engine, migrate
 
 
 @pytest.fixture(scope="session")
@@ -38,7 +37,7 @@ def empty_database_url(postgres_url: str) -> Iterator[str]:
 @pytest.fixture
 def database_url(empty_database_url: str) -> str:
     """URL of a fresh database migrated to the latest revision."""
-    upgrade_to_head(empty_database_url)
+    migrate(empty_database_url)
     return empty_database_url
 
 

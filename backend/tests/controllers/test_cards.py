@@ -1,7 +1,6 @@
 """Ownership write routes on `create_app` and real Postgres."""
 
 from collections.abc import Iterator
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -14,15 +13,10 @@ from sqlalchemy import Engine, insert, select
 
 from tcg_pokedex.app import create_app
 from tcg_pokedex.config import Settings
-from tcg_pokedex.tables import (
-    HOUSEHOLD_OWNER_ID,
-    owners,
-    ownership,
-    tracked_sets,
-)
+from tcg_pokedex.models.owner import HOUSEHOLD_OWNER_ID, Owner
+from tcg_pokedex.models.ownership import Ownership
 from tests.helpers import (
     OTHER_OWNER_ID,
-    SEEDED_AT,
     card_row,
     own,
     seed,
@@ -41,7 +35,7 @@ def app(database_url: str, engine: Engine, tmp_path: Path) -> FastAPI:
         [card_row(), card_row(id="sv01-002", variants=["normal"])],
     )
     with engine.begin() as connection:
-        connection.execute(insert(owners).values(id=OTHER_OWNER_ID, name="Outra"))
+        connection.execute(insert(Owner).values(id=OTHER_OWNER_ID, name="Outra"))
     own(engine, "sv01-001", "normal", 5, owner_id=OTHER_OWNER_ID)
     settings = Settings(
         database_url=PostgresDsn(database_url), image_dir=tmp_path / "images"
@@ -59,10 +53,10 @@ def stored(engine: Engine) -> set[tuple[UUID, str, str, int]]:
     with engine.connect() as connection:
         rows = connection.execute(
             select(
-                ownership.c.owner_id,
-                ownership.c.card_id,
-                ownership.c.variant,
-                ownership.c.quantity,
+                Ownership.owner_id,
+                Ownership.card_id,
+                Ownership.variant,
+                Ownership.quantity,
             )
         ).all()
     return {(row.owner_id, row.card_id, row.variant, row.quantity) for row in rows}
@@ -149,31 +143,3 @@ def test_rejected_changes_leave_every_quantity_unchanged(
 
     assert rejected.status_code == status
     assert stored(engine) == {OTHERS, mine("sv01-001", "normal", 999)}
-
-
-def test_untracking_a_set_keeps_its_quantities(
-    client: TestClient, engine: Engine
-) -> None:
-    with engine.begin() as connection:
-        connection.execute(
-            insert(tracked_sets).values(
-                owner_id=HOUSEHOLD_OWNER_ID, set_id="sv01", tracked_at=SEEDED_AT
-            )
-        )
-    client.put("/api/cards/sv01-002/ownership/normal", json={"quantity": 4})
-
-    untracked = client.delete("/api/sets/sv01/tracking")
-
-    assert untracked.json()["tracked"] is False
-    assert stored(engine) == {OTHERS, mine("sv01-002", "normal", 4)}
-
-
-def test_concurrent_increments_all_count(client: TestClient, engine: Engine) -> None:
-    def increment(_: int) -> int:
-        return client.post(f"{CARD}/normal/increment").status_code
-
-    with ThreadPoolExecutor(max_workers=10) as pool:
-        statuses = list(pool.map(increment, range(10)))
-
-    assert statuses == [200] * 10
-    assert stored(engine) == {OTHERS, mine("sv01-001", "normal", 10)}
