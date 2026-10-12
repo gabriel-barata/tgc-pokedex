@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Protocol
-from uuid import UUID
 
 from tcg_pokedex.catalog_sync.domain import (
     Card,
@@ -9,7 +8,6 @@ from tcg_pokedex.catalog_sync.domain import (
     SetBatch,
     SetListing,
     StoredCatalog,
-    SyncRun,
 )
 
 
@@ -49,17 +47,7 @@ class CatalogProvider(Protocol):
 
 
 class CatalogRepository(Protocol):
-    """Our own store of the catalog and of the sync run records."""
-
-    def start_run(self, run: SyncRun) -> None:
-        """Insert an open run record and commit it."""
-        ...
-
-    def finish_run(self, run: SyncRun) -> None:
-        """Update a run record to its closed state."""
-        ...
-
-    def get_run(self, run_id: UUID) -> SyncRun | None: ...
+    """Our own store of the catalog."""
 
     def load_stored(
         self, series_id: str, set_id: str, card_ids: Sequence[str]

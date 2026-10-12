@@ -3,7 +3,6 @@
 from collections.abc import Iterable, Sequence
 from dataclasses import replace
 from datetime import datetime
-from uuid import UUID
 
 from tcg_pokedex.catalog_sync.domain import (
     Card,
@@ -14,7 +13,6 @@ from tcg_pokedex.catalog_sync.domain import (
     SetBatch,
     SetListing,
     StoredCatalog,
-    SyncRun,
 )
 from tcg_pokedex.catalog_sync.ports import InvalidBatchError, ProviderUnavailableError
 
@@ -87,28 +85,12 @@ class InMemoryCatalogProvider:
 
 
 class InMemoryCatalogRepository:
-    """CatalogRepository holding rows in dicts.
-
-    `calls` records `start_run`, `save_set` and `finish_run` in the order they happen.
-    """
+    """CatalogRepository holding rows in dicts."""
 
     def __init__(self) -> None:
-        self.runs: dict[UUID, SyncRun] = {}
         self.series: dict[str, Fetched[Series]] = {}
         self.sets: dict[str, Fetched[CardSet]] = {}
         self.cards: dict[str, Fetched[Card]] = {}
-        self.calls: list[str] = []
-
-    def start_run(self, run: SyncRun) -> None:
-        self.calls.append("start_run")
-        self.runs[run.id] = run
-
-    def finish_run(self, run: SyncRun) -> None:
-        self.calls.append("finish_run")
-        self.runs[run.id] = run
-
-    def get_run(self, run_id: UUID) -> SyncRun | None:
-        return self.runs.get(run_id)
 
     def load_stored(
         self, series_id: str, set_id: str, card_ids: Sequence[str]
@@ -124,7 +106,6 @@ class InMemoryCatalogRepository:
         )
 
     def save_set(self, batch: SetBatch, fetched_at: datetime) -> None:
-        self.calls.append("save_set")
         series_id = batch.card_set.series_id
         in_batch = batch.series is not None and batch.series.id == series_id
         if not in_batch and series_id not in self.series:

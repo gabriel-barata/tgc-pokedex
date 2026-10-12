@@ -1,25 +1,23 @@
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
-from uuid import UUID
 
-from sqlalchemy import Connection, Engine, RowMapping, Table, insert, select, update
+from sqlalchemy import Connection, Engine, RowMapping, Table, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.exc import IntegrityError
 
 from tcg_pokedex.catalog_sync.adapters import tables
 from tcg_pokedex.catalog_sync.domain import (
-    SOURCE,
     Card,
     CardSet,
     Fetched,
     Series,
     SetBatch,
     StoredCatalog,
-    SyncRun,
     Variant,
 )
 from tcg_pokedex.catalog_sync.ports import InvalidBatchError
+from tcg_pokedex.tcgdex import SOURCE
 
 
 class PostgresCatalogRepository:
@@ -30,29 +28,6 @@ class PostgresCatalogRepository:
 
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
-
-    def start_run(self, run: SyncRun) -> None:
-        with self._engine.begin() as connection:
-            connection.execute(insert(tables.sync_runs).values(_run_row(run)))
-
-    def finish_run(self, run: SyncRun) -> None:
-        with self._engine.begin() as connection:
-            connection.execute(
-                update(tables.sync_runs)
-                .where(tables.sync_runs.c.id == run.id)
-                .values(_run_row(run))
-            )
-
-    def get_run(self, run_id: UUID) -> SyncRun | None:
-        with self._engine.connect() as connection:
-            row = (
-                connection.execute(
-                    select(tables.sync_runs).where(tables.sync_runs.c.id == run_id)
-                )
-                .mappings()
-                .one_or_none()
-            )
-        return None if row is None else SyncRun.model_validate(dict(row))
 
     def load_stored(
         self, series_id: str, set_id: str, card_ids: Sequence[str]
@@ -119,20 +94,6 @@ def _upsert(connection: Connection, table: Table, rows: list[dict[str, Any]]) ->
         ),
         rows,
     )
-
-
-def _run_row(run: SyncRun) -> dict[str, Any]:
-    return {
-        "id": run.id,
-        "kind": run.kind.value,
-        "source": run.source,
-        "status": run.status.value,
-        "started_at": run.started_at,
-        "finished_at": run.finished_at,
-        "duration_ms": run.duration_ms,
-        "result": None if run.result is None else run.result.model_dump(mode="json"),
-        "error": run.error,
-    }
 
 
 def _provenance(fetched_at: datetime) -> dict[str, Any]:

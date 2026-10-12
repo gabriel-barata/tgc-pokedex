@@ -5,10 +5,10 @@ from tcg_pokedex.catalog_sync.domain import (
     Failure,
     Fetched,
     ResultBuilder,
-    RunStatus,
     StoredCatalog,
     plan_set,
 )
+from tcg_pokedex.sync_runs.domain import RunStatus
 from tests.catalog_sync.builders import make_card, make_listing, make_series, make_set
 
 EARLIER = datetime(2026, 10, 10, 12, 0, tzinfo=UTC)

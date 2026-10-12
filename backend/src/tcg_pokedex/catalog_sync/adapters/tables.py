@@ -9,9 +9,8 @@ from sqlalchemy import (
     Integer,
     Table,
     Text,
-    Uuid,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.dialects.postgresql import ARRAY
 
 from tcg_pokedex.database import metadata
 
@@ -58,18 +57,4 @@ cards = Table(
     Column("variants", ARRAY(Text), nullable=False),
     *_provenance(),
     CheckConstraint("cardinality(variants) > 0", name="variants_not_empty"),
-)
-
-sync_runs = Table(
-    "sync_runs",
-    metadata,
-    Column("id", Uuid(as_uuid=True), primary_key=True),
-    Column("kind", Text, nullable=False),
-    Column("source", Text, nullable=False),
-    Column("status", Text, nullable=False),
-    Column("started_at", DateTime(timezone=True), nullable=False),
-    Column("finished_at", DateTime(timezone=True), nullable=True),
-    Column("duration_ms", Integer, nullable=True),
-    Column("result", JSONB, nullable=True),
-    Column("error", Text, nullable=True),
 )

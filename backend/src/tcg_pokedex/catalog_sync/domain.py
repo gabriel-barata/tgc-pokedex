@@ -1,31 +1,21 @@
-"""Catalog-sync domain: the catalog entities, the run record and the sync rules.
+"""Catalog-sync domain: the catalog entities, the run result and the sync rules.
 
-Pure: no I/O and no clock. The run record and its result are Pydantic models so their
-shape is defined once and validated both when written and when read.
+Pure: no I/O and no clock. The run result is a Pydantic model so its shape is defined
+once and validated both when written and when read.
 """
 
 from collections import Counter
 from collections.abc import Mapping, Sequence, Set
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from enum import StrEnum
 from typing import Literal, Self
-from uuid import UUID
 
-from pydantic import (
-    AwareDatetime,
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-SOURCE = "tcgdex"
-"""Where every catalog row comes from. Stored on each row by the repository."""
+from tcg_pokedex.sync_runs.domain import MAX_FAILURES, RunStatus, run_status
 
 POCKET_SERIES_ID = "tcgp"
-MAX_FAILURES = 100
 
 
 class Variant(StrEnum):
@@ -122,17 +112,6 @@ class Failure(_Model):
     reason: str
 
 
-class SyncKind(StrEnum):
-    CATALOG = "catalog"
-
-
-class RunStatus(StrEnum):
-    RUNNING = "running"
-    SUCCEEDED = "succeeded"
-    PARTIAL = "partial"
-    FAILED = "failed"
-
-
 class KindCounts(_Model):
     """`fetched` counts valid payloads received and stored."""
 
@@ -166,25 +145,6 @@ class SyncCounts(_Model):
 class SyncResult(_Model):
     counts: SyncCounts
     failures: tuple[Failure, ...] = Field(max_length=MAX_FAILURES)
-
-
-class SyncRun(_Model):
-    """One execution of a sync. Its JSON form is also the command's output."""
-
-    id: UUID
-    kind: SyncKind
-    source: str = SOURCE
-    status: RunStatus
-    started_at: AwareDatetime
-    finished_at: AwareDatetime | None = None
-    duration_ms: int | None = Field(default=None, ge=0)
-    result: SyncResult | None = None
-    error: str | None = None
-
-    @field_validator("started_at", "finished_at")
-    @classmethod
-    def _in_utc(cls, value: datetime | None) -> datetime | None:
-        return value.astimezone(UTC) if value is not None else None
 
 
 class Change(StrEnum):
@@ -274,9 +234,7 @@ class ResultBuilder:
         self._aborted = True
 
     def status(self) -> RunStatus:
-        if self._aborted:
-            return RunStatus.FAILED
-        return RunStatus.PARTIAL if self._failed.total() else RunStatus.SUCCEEDED
+        return run_status(aborted=self._aborted, failed=self._failed.total())
 
     def build(self) -> SyncResult:
         return SyncResult(
