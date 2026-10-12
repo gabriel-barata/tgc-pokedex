@@ -1,16 +1,33 @@
 """TCGdex payload schemas and their mapping to catalog entities.
 
 The only provider-to-domain mapping. Every payload is validated here: text is trimmed,
-required text must be non-empty, and blank optional text becomes None.
+required text must be non-empty, and blank optional text becomes None. An invalid set
+or card payload becomes a `Failure`; an invalid index payload raises `ValidationError`.
 """
 
 from datetime import date
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    ValidationError,
+)
 from pydantic.alias_generators import to_camel
 
-from tcg_pokedex.catalog_sync.domain import Card, CardSet, Series, SetListing, Variant
+from tcg_pokedex.catalog_sync.domain import (
+    Card,
+    CardSet,
+    Failure,
+    Series,
+    SetListing,
+    Variant,
+)
+
+NO_VARIANTS = "no variants"
 
 
 def _blank_to_none(value: str | None) -> str | None:
@@ -83,8 +100,19 @@ def parse_set_ids(content: bytes) -> list[str]:
     return [card_set.id for card_set in _SeriesDetail.model_validate_json(content).sets]
 
 
-def parse_set(content: bytes) -> SetListing:
-    payload = _SetDetail.model_validate_json(content)
+def invalid_payload(error: ValidationError) -> str:
+    """The failure reason for a payload: its first error and that field's path."""
+    first = error.errors(include_url=False)[0]
+    field = ".".join(str(part) for part in first["loc"]) or "body"
+    return f"invalid payload: {field}: {first['msg']}"
+
+
+def parse_set(content: bytes, set_id: str) -> SetListing | Failure:
+    """Map a set detail, or fail the requested `set_id` when the payload is invalid."""
+    try:
+        payload = _SetDetail.model_validate_json(content)
+    except ValidationError as error:
+        return Failure(kind="set", provider_id=set_id, reason=invalid_payload(error))
     return SetListing(
         card_set=CardSet(
             id=payload.id,
@@ -101,9 +129,18 @@ def parse_set(content: bytes) -> SetListing:
     )
 
 
-def parse_card(content: bytes, set_id: str) -> Card:
-    """Map a card detail. The card belongs to `set_id`; its own `set` is ignored."""
-    payload = _CardDetail.model_validate_json(content)
+def parse_card(content: bytes, card_id: str, set_id: str) -> Card | Failure:
+    """Map a card detail, or fail the requested `card_id`.
+
+    The card belongs to `set_id`; the set named in its own payload is ignored.
+    """
+    try:
+        payload = _CardDetail.model_validate_json(content)
+    except ValidationError as error:
+        return Failure(kind="card", provider_id=card_id, reason=invalid_payload(error))
+    variants = _variants(payload.variants)
+    if not variants:
+        return Failure(kind="card", provider_id=card_id, reason=NO_VARIANTS)
     return Card(
         id=payload.id,
         set_id=set_id,
@@ -112,7 +149,7 @@ def parse_card(content: bytes, set_id: str) -> Card:
         rarity=payload.rarity,
         illustrator=payload.illustrator,
         image_url=payload.image,
-        variants=_variants(payload.variants),
+        variants=variants,
     )
 
 

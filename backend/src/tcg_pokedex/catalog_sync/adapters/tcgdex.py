@@ -59,14 +59,14 @@ class TcgdexProvider:
         return parse_set_ids(self._get(f"/series/{series_id}"))
 
     def fetch_set(self, set_id: str) -> SetListing | Failure:
-        return parse_set(self._get(f"/sets/{set_id}"))
+        return parse_set(self._get(f"/sets/{set_id}"), set_id)
 
     def fetch_cards(self, set_id: str, card_ids: Sequence[str]) -> list[Card | Failure]:
         with ThreadPoolExecutor(max_workers=MAX_IN_FLIGHT) as pool:
             return list(pool.map(partial(self._fetch_card, set_id), card_ids))
 
     def _fetch_card(self, set_id: str, card_id: str) -> Card | Failure:
-        return parse_card(self._get(f"/cards/{card_id}"), set_id=set_id)
+        return parse_card(self._get(f"/cards/{card_id}"), card_id, set_id=set_id)
 
     def _get(self, path: str) -> bytes:
         response = self._client.get(path)
