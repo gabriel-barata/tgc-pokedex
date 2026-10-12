@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from tcg_pokedex.clock.fake import FakeClock
 from tcg_pokedex.image_cache.domain import (
+    ArtworkKind,
     CardImages,
     ImageCounts,
     ImageFailure,
@@ -25,6 +26,12 @@ IMAGES = CardImages(small=b"small", large=b"large")
 PT_001 = "https://assets.tcgdex.net/pt/sv/sv01/001"
 PT_004 = "https://assets.tcgdex.net/pt/sv/sv01/004"
 PT_SV02 = "https://assets.tcgdex.net/pt/sv/sv02/001"
+PT_002 = "https://assets.tcgdex.net/pt/sv/sv01/002"
+PT_005 = "https://assets.tcgdex.net/pt/sv/sv01/005"
+EN_005 = "https://assets.tcgdex.net/en/sv/sv01/005"
+SV02_LOGO = "https://assets.tcgdex.net/pt/sv/sv02/logo"
+SV02_SYMBOL = "https://assets.tcgdex.net/univ/sv/sv02/symbol"
+PT_IMAGES = CardImages(small=b"pt small", large=b"pt large")
 EN_002 = "https://assets.tcgdex.net/en/sv/sv01/002"
 SV01_LOGO = "https://assets.tcgdex.net/pt/sv/sv01/logo"
 SERVER_ERROR = "HTTP 500 after 3 attempts"
@@ -120,3 +127,48 @@ def test_an_unscoped_run_downloads_cards_of_tracked_sets_only() -> None:
     assert PT_001 in world.provider.requests
     assert PT_SV02 not in world.provider.requests
     assert "en/sv02-001" not in world.provider.requests
+
+
+def test_an_unscoped_run_caches_every_sets_artwork_once() -> None:
+    world = World()
+    world.repository.add_set("sv02", logo_url=SV02_LOGO, symbol_url=SV02_SYMBOL)
+    world.provider.fail(SV02_LOGO, SERVER_ERROR)
+
+    run = world.sync(set_id=None)
+    world.provider.requests.clear()
+    second = world.sync(LATER, set_id=None)
+
+    assert world.store.artwork == {("sv01", ArtworkKind.LOGO): b"logo"}
+    assert world.repository.artwork == {("sv01", ArtworkKind.LOGO): START}
+    assert run.result is not None
+    assert run.result.counts.artwork == ImageCounts(
+        downloaded=1, cached=0, unavailable=2, failed=1
+    )
+    assert run.result.failures == (
+        ImageFailure(kind="logo", provider_id="sv02", reason=SERVER_ERROR),
+    )
+    assert SV01_LOGO not in world.provider.requests
+    assert second.result is not None
+    assert second.result.counts.artwork.cached == 1
+
+
+def test_english_images_are_replaced_once_a_pt_image_appears() -> None:
+    world = World()
+    world.repository.add_card("sv01-005", "sv01", PT_005)
+    world.provider.add_english("sv01-005", EN_005)
+    world.provider.add_image(EN_005, IMAGES)
+    world.sync()
+    world.repository.add_card("sv01-002", "sv01", PT_002)
+    world.provider.add_image(PT_002, PT_IMAGES)
+    world.provider.requests.clear()
+
+    world.sync(LATER)
+
+    assert world.store.cards["sv01-002"] == PT_IMAGES
+    assert world.repository.card_images["sv01-002"] == StoredCardImage(
+        Language.PT, LATER
+    )
+    assert world.repository.card_images["sv01-005"] == StoredCardImage(
+        Language.EN, START
+    )
+    assert EN_005 not in world.provider.requests
