@@ -8,8 +8,8 @@ test("keyboard users move through the top bar in reading order", async ({ page }
     page.getByRole("link", { name: shellStrings.skipToContent }),
     page.getByRole("link", { name: shellStrings.home }),
     page.getByRole("searchbox", { name: shellStrings.searchLabel }),
-    page.getByRole("link", { name: shellStrings.collections }),
-    page.getByRole("link", { name: shellStrings.status }),
+    page.getByRole("link", { name: shellStrings.collections, exact: true }),
+    page.getByRole("link", { name: shellStrings.status, exact: true }),
   ];
   for (const stop of stops) {
     await page.keyboard.press("Tab");
@@ -20,7 +20,7 @@ test("keyboard users move through the top bar in reading order", async ({ page }
 test("the main navigation opens the Coleções page", async ({ page }) => {
   await page.goto("/");
 
-  await page.getByRole("link", { name: shellStrings.collections }).click();
+  await page.getByRole("link", { name: shellStrings.collections, exact: true }).click();
 
   await expect(page).toHaveURL("/colecoes");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(shellStrings.collections);

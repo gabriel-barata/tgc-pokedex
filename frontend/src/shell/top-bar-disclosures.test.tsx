@@ -1,7 +1,9 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { http } from "msw";
+import { beforeEach, describe, expect, it } from "vitest";
 import { App } from "../App.tsx";
+import { server } from "../test-server.ts";
 import { renderWithProviders } from "../test-utils.tsx";
 import { shellStrings } from "./strings.ts";
 
@@ -12,6 +14,10 @@ function menuButton() {
 function searchButton() {
   return screen.getByRole("button", { name: shellStrings.openSearch });
 }
+
+beforeEach(() => {
+  server.use(http.get("/api/sets", () => new Promise<never>(() => undefined)));
+});
 
 describe("top bar menu on narrow screens", () => {
   it("opens the main navigation and closes it with Escape, returning focus to the button", async () => {
