@@ -1,7 +1,8 @@
 """Composition root of `tcg sync catalog`.
 
 Prints the closed run as one JSON object on stdout, logs JSON lines on stderr, and
-returns the exit code for the run's status.
+returns the exit code for the run's status. When the run record cannot be created or
+closed, it prints nothing, logs `sync.run.error` and returns 2.
 """
 
 import json
@@ -22,6 +23,7 @@ from tcg_pokedex.config import Settings
 from tcg_pokedex.database import create_database_engine
 
 EXIT_CODES = {RunStatus.SUCCEEDED: 0, RunStatus.PARTIAL: 1, RunStatus.FAILED: 2}
+STORE_ERROR_EXIT_CODE = EXIT_CODES[RunStatus.FAILED]
 
 app_logger = logging.getLogger("tcg_pokedex")
 
@@ -59,6 +61,10 @@ def run_catalog_sync(
     try:
         with TcgdexProvider(transport=transport, sleep=sleep) as provider:
             run = sync_catalog(provider, PostgresCatalogRepository(engine), clock)
+    except Exception as error:
+        app_logger.error("sync.run.error", extra={"fields": {"error": str(error)}})
+        return STORE_ERROR_EXIT_CODE
+    else:
         print(run.model_dump_json())
         return EXIT_CODES[run.status]
     finally:
