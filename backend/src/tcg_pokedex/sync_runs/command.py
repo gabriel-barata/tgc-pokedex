@@ -1,13 +1,15 @@
-"""What every `tcg sync …` command shares: exit codes and JSON-lines logging."""
+"""What every `tcg sync …` command shares: logging, output and exit codes."""
 
 import json
 import logging
 import sys
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
-from tcg_pokedex.sync_runs.domain import RunStatus
+from pydantic import BaseModel
+
+from tcg_pokedex.sync_runs.domain import RunStatus, SyncRun
 
 EXIT_CODES = {RunStatus.SUCCEEDED: 0, RunStatus.PARTIAL: 1, RunStatus.FAILED: 2}
 STORE_ERROR_EXIT_CODE = EXIT_CODES[RunStatus.FAILED]
@@ -46,3 +48,19 @@ def json_lines_on_stderr() -> Generator[None]:
         app_logger.removeHandler(handler)
         app_logger.setLevel(previous_level)
         app_logger.propagate = previous_propagate
+
+
+def report_run[R: BaseModel](sync: Callable[[], SyncRun[R]]) -> int:
+    """Run a sync, print the closed run as one JSON object, and return its exit code.
+
+    The app's log goes only to stderr, as JSON lines. When the run record cannot be
+    created or closed, it prints nothing, logs `sync.run.error` and returns 2.
+    """
+    with json_lines_on_stderr():
+        try:
+            run = sync()
+        except Exception as error:
+            app_logger.error("sync.run.error", extra={"fields": {"error": str(error)}})
+            return STORE_ERROR_EXIT_CODE
+    print(run.model_dump_json())
+    return EXIT_CODES[run.status]
