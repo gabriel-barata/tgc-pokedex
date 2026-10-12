@@ -1,0 +1,179 @@
+"""End to end: `tcg sync catalog` in-process on Postgres and the recorded fixtures."""
+
+import json
+from collections.abc import Iterator, Mapping, Sequence
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
+
+import httpx2
+import pytest
+from pydantic import PostgresDsn
+from sqlalchemy import Engine, select
+
+from tcg_pokedex.catalog_sync.adapters import tables
+from tcg_pokedex.catalog_sync.adapters.postgres import PostgresCatalogRepository
+from tcg_pokedex.catalog_sync.command import run_catalog_sync
+from tcg_pokedex.catalog_sync.domain import (
+    CardCounts,
+    KindCounts,
+    RunStatus,
+    SetCounts,
+    SyncRun,
+)
+from tcg_pokedex.clock.fake import FakeClock
+from tcg_pokedex.config import Settings
+from tcg_pokedex.database import create_database_engine
+from tcg_pokedex.migrations import upgrade_to_head
+from tests.catalog_sync.tcgdex_fixtures import (
+    HAPPY,
+    HAPPY_CARD_IDS,
+    FixtureRoutes,
+    Raise,
+    Reply,
+    SleepRecorder,
+)
+
+START = datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
+
+
+@dataclass(frozen=True)
+class Outcome:
+    exit_code: int
+    stdout: str
+    log: list[dict[str, Any]]
+    routes: FixtureRoutes
+
+    @property
+    def run(self) -> SyncRun:
+        return SyncRun.model_validate_json(self.stdout)
+
+
+@pytest.fixture
+def database_url(empty_database_url: str) -> str:
+    upgrade_to_head(empty_database_url)
+    return empty_database_url
+
+
+@pytest.fixture
+def engine(database_url: str) -> Iterator[Engine]:
+    engine = create_database_engine(database_url)
+    yield engine
+    engine.dispose()
+
+
+def sync(
+    capsys: pytest.CaptureFixture[str],
+    database_url: str,
+    table: Mapping[str, Sequence[Reply | Raise]] = HAPPY,
+    clock: FakeClock | None = None,
+) -> Outcome:
+    routes = FixtureRoutes(table)
+    capsys.readouterr()
+    exit_code = run_catalog_sync(
+        Settings(database_url=PostgresDsn(database_url)),
+        clock or FakeClock(START),
+        transport=httpx2.MockTransport(routes),
+        sleep=SleepRecorder(),
+    )
+    captured = capsys.readouterr()
+    log = [json.loads(line) for line in captured.err.splitlines()]
+    return Outcome(exit_code, captured.out, log, routes)
+
+
+def rows(engine: Engine, table: Any) -> dict[str, dict[str, Any]]:
+    with engine.connect() as connection:
+        result = connection.execute(select(table)).mappings().all()
+    return {row["id"]: dict(row) for row in result}
+
+
+def test_a_first_run_populates_the_catalog_and_exits_0(
+    capsys: pytest.CaptureFixture[str], database_url: str
+) -> None:
+    outcome = sync(capsys, database_url)
+
+    assert outcome.exit_code == 0
+    assert len(outcome.stdout.strip().splitlines()) == 1
+    run = outcome.run
+    assert run.status is RunStatus.SUCCEEDED
+    assert run.result is not None
+    assert run.result.counts.series == KindCounts(
+        fetched=3, created=3, updated=0, unchanged=0
+    )
+    assert run.result.counts.sets == SetCounts(
+        fetched=4, created=4, updated=0, unchanged=0, skipped=1, failed=0
+    )
+    assert run.result.counts.cards == CardCounts(
+        fetched=14, created=14, updated=0, unchanged=0, failed=0
+    )
+
+
+def test_the_stored_rows_match_the_corpus(
+    capsys: pytest.CaptureFixture[str], database_url: str, engine: Engine
+) -> None:
+    sync(capsys, database_url)
+
+    series = rows(engine, tables.series)
+    sets = rows(engine, tables.sets)
+    cards = rows(engine, tables.cards)
+    assert set(series) == {"xy", "swsh", "sv"}
+    assert set(sets) == {"xy0", "swshp", "swsh4.5", "sv01"}
+    assert set(cards) == set(HAPPY_CARD_IDS)
+    assert cards["sv01-001"]["variants"] == ["normal", "reverse"]
+    assert cards["sv01-001"]["set_id"] == "sv01"
+    assert cards["swshp-SWSH158"]["collector_number"] == "SWSH158"
+    assert cards["swshp-SWSH158"]["variants"] == ["holo"]
+    assert cards["swshp-SWSH032"]["image_url"] is None
+    assert cards["xy0-1"]["rarity"] is None
+    assert cards["xy0-1"]["image_url"] == "https://assets.tcgdex.net/pt/xy/xy0/1"
+    assert sets["swsh4.5"]["name"] == "Destinos Brilhantes"
+    assert sets["xy0"]["logo_url"] is None
+    assert sets["sv01"]["series_id"] == "sv"
+    assert series["swsh"]["name"] == "Espada e Escudo"
+    for table in (series, sets, cards):
+        for row in table.values():
+            assert row["source"] == "tcgdex"
+            assert row["fetched_at"] == START
+
+
+def test_the_run_record_matches_the_printed_run(
+    capsys: pytest.CaptureFixture[str], database_url: str, engine: Engine
+) -> None:
+    outcome = sync(capsys, database_url)
+
+    stored = PostgresCatalogRepository(engine).get_run(outcome.run.id)
+
+    assert stored == outcome.run
+    assert outcome.run.finished_at == START
+    assert outcome.run.duration_ms == 0
+
+
+def test_no_pocket_endpoint_is_requested(
+    capsys: pytest.CaptureFixture[str], database_url: str
+) -> None:
+    outcome = sync(capsys, database_url)
+
+    assert "series/sv" in outcome.routes.paths
+    assert not [path for path in outcome.routes.paths if "tcgp" in path or "A1" in path]
+
+
+def test_the_run_start_and_end_are_logged_as_json_lines(
+    capsys: pytest.CaptureFixture[str], database_url: str
+) -> None:
+    outcome = sync(capsys, database_url)
+
+    run = outcome.run
+    assert [line["event"] for line in outcome.log] == [
+        "sync.run.started",
+        "sync.run.finished",
+    ]
+    started, finished = outcome.log
+    assert started["level"] == "INFO"
+    assert datetime.fromisoformat(started["time"]).tzinfo is not None
+    assert started["run_id"] == str(run.id)
+    assert started["kind"] == "catalog"
+    assert finished["status"] == "succeeded"
+    assert finished["duration_ms"] == 0
+    assert run.result is not None
+    assert finished["counts"] == run.result.counts.model_dump(mode="json")
+    assert finished["error"] is None
