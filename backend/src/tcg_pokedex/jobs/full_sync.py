@@ -8,11 +8,10 @@ from typing import Any
 
 from sqlalchemy import Engine
 
-from tcg_pokedex.schemas import RunStatus
-from tcg_pokedex.services.catalog_sync import sync_catalog
-from tcg_pokedex.services.image_sync import sync_images
-from tcg_pokedex.services.sync_runs import SyncRun
-from tcg_pokedex.tcgdex import Tcgdex
+from tcg_pokedex.jobs.catalog_sync import sync_catalog
+from tcg_pokedex.jobs.image_sync import sync_images
+from tcg_pokedex.providers.tcgdex import Tcgdex
+from tcg_pokedex.views.sync import RunStatus, SyncRun
 
 
 def sync_all(

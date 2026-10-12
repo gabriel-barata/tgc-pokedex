@@ -1,6 +1,7 @@
-"""The `tcg` console command: `tcg sync catalog`, `tcg sync images`, `tcg sync all`."""
+"""The `tcg` console command: `sync catalog|images|all`, `migrate` and `openapi`."""
 
 import argparse
+import json
 import time
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
@@ -8,19 +9,16 @@ from typing import Any, NoReturn
 
 import httpx2
 
+from tcg_pokedex.app import create_app
 from tcg_pokedex.config import Settings
-from tcg_pokedex.db import create_database_engine
-from tcg_pokedex.services.catalog_sync import sync_catalog
-from tcg_pokedex.services.full_sync import sync_all
-from tcg_pokedex.services.image_sync import sync_images
-from tcg_pokedex.services.sync_runs import (
-    SyncBusyError,
-    SyncRun,
-    claim_syncs,
-    release_syncs,
-    report_runs,
-)
-from tcg_pokedex.tcgdex import Tcgdex
+from tcg_pokedex.database import create_database_engine, migrate
+from tcg_pokedex.jobs.catalog_sync import sync_catalog
+from tcg_pokedex.jobs.full_sync import sync_all
+from tcg_pokedex.jobs.image_sync import sync_images
+from tcg_pokedex.jobs.runs import SyncBusyError, report_runs
+from tcg_pokedex.models.sync_runs import claim_syncs, release_syncs
+from tcg_pokedex.providers.tcgdex import Tcgdex
+from tcg_pokedex.views.sync import SyncRun
 
 
 def run_sync(
@@ -77,8 +75,18 @@ def _parser() -> argparse.ArgumentParser:
             "(exit code of the worse run)"
         ),
     )
+    commands.add_parser("migrate", help="apply the database migrations")
+    commands.add_parser("openapi", help="print the API's OpenAPI schema as JSON")
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> NoReturn:
-    raise SystemExit(run_sync(_parser().parse_args(argv).target, Settings()))
+    arguments = _parser().parse_args(argv)
+    settings = Settings()
+    if arguments.command == "migrate":
+        migrate(str(settings.database_url))
+        raise SystemExit(0)
+    if arguments.command == "openapi":
+        print(json.dumps(create_app(settings).openapi(), indent=2, ensure_ascii=False))
+        raise SystemExit(0)
+    raise SystemExit(run_sync(arguments.target, settings))

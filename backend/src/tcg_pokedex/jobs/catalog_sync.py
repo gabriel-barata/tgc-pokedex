@@ -6,32 +6,32 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from enum import StrEnum
 from functools import partial
-from typing import Any, Literal, Self
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
-from sqlalchemy import Connection, Engine, Table, select
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import Engine
 
-from tcg_pokedex.schemas import RunStatus, SyncKind, Variant
-from tcg_pokedex.services.sync_runs import (
-    MAX_FAILURES,
-    SyncRun,
-    close_run,
-    finish_run,
-    log,
-    run_status,
-    start_run,
-)
-from tcg_pokedex.tables import cards, series, sets
-from tcg_pokedex.tcgdex import (
+from tcg_pokedex.jobs.runs import close_run, finish_run, log, run_status, start_run
+from tcg_pokedex.models.catalog import save_set
+from tcg_pokedex.providers.tcgdex import (
     MAX_IN_FLIGHT,
-    SOURCE,
     Card,
     CardSet,
     Series,
     Tcgdex,
     TcgdexError,
+)
+from tcg_pokedex.views.ownership import Variant
+from tcg_pokedex.views.sync import (
+    MAX_FAILURES,
+    CardCounts,
+    Failure,
+    KindCounts,
+    RunStatus,
+    SetCounts,
+    SyncCounts,
+    SyncKind,
+    SyncResult,
+    SyncRun,
 )
 
 POCKET_SERIES_ID = "tcgp"
@@ -42,55 +42,6 @@ Row = dict[str, Any]
 def is_pocket_series(series_id: str) -> bool:
     """TCG Pocket sets are never synced. This is the only definition of the rule."""
     return series_id == POCKET_SERIES_ID
-
-
-class InvalidBatchError(Exception):
-    """A set's write was rejected as a whole; none of it was stored."""
-
-
-class _Model(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-
-class Failure(_Model):
-    kind: Literal["set", "card"]
-    provider_id: str
-    reason: str
-
-
-class KindCounts(_Model):
-    """`fetched` counts valid payloads received and stored."""
-
-    fetched: int = Field(ge=0)
-    created: int = Field(ge=0)
-    updated: int = Field(ge=0)
-    unchanged: int = Field(ge=0)
-
-    @model_validator(mode="after")
-    def _fetched_is_the_sum(self) -> Self:
-        if self.fetched != self.created + self.updated + self.unchanged:
-            raise ValueError("fetched must equal created + updated + unchanged")
-        return self
-
-
-class SetCounts(KindCounts):
-    skipped: int = Field(ge=0)
-    failed: int = Field(ge=0)
-
-
-class CardCounts(KindCounts):
-    failed: int = Field(ge=0)
-
-
-class SyncCounts(_Model):
-    series: KindCounts
-    sets: SetCounts
-    cards: CardCounts
-
-
-class SyncResult(_Model):
-    counts: SyncCounts
-    failures: tuple[Failure, ...] = Field(max_length=MAX_FAILURES)
 
 
 class Change(StrEnum):
@@ -239,27 +190,18 @@ class _CatalogSync:
         series_row = _series_row(listing.series)
         set_row = _set_row(listing.card_set)
         card_rows = [_card_row(card) for card in fetched]
-        try:
-            with self._engine.begin() as connection:
-                stored_series = _stored(connection, series, [listing.series.id])
-                stored_set = _stored(connection, sets, [set_id])
-                stored_cards = _stored(
-                    connection, cards, [row["id"] for row in card_rows]
-                )
-                if write_series:
-                    self._upsert(connection, series, [series_row])
-                self._upsert(connection, sets, [set_row])
-                if card_rows:
-                    self._upsert(connection, cards, card_rows)
-        except IntegrityError as error:
-            raise InvalidBatchError(str(error.orig)) from error
+        stored = save_set(
+            self._engine,
+            series_row=series_row if write_series else None,
+            set_row=set_row,
+            card_rows=card_rows,
+            fetched_at=self._run.started_at,
+        )
         self._series_written.add(listing.series.id)
         self.result.record(
-            classify(stored_series.get(listing.series.id), series_row)
-            if write_series
-            else None,
-            classify(stored_set.get(set_id), set_row),
-            [classify(stored_cards.get(row["id"]), row) for row in card_rows],
+            classify(stored.series, series_row) if write_series else None,
+            classify(stored.card_set, set_row),
+            [classify(stored.cards.get(row["id"]), row) for row in card_rows],
         )
 
     def _card(self, set_id: str, card_id: str) -> Card | Failure:
@@ -267,22 +209,6 @@ class _CatalogSync:
             return self._tcgdex.card(card_id, set_id)
         except TcgdexError as error:
             return Failure(kind="card", provider_id=card_id, reason=error.reason)
-
-    def _upsert(self, connection: Connection, table: Table, rows: list[Row]) -> None:
-        """Insert rows, replacing every column of a row whose id already exists."""
-        provenance = {"source": SOURCE, "fetched_at": self._run.started_at}
-        statement = postgresql.insert(table)
-        connection.execute(
-            statement.on_conflict_do_update(
-                index_elements=[table.c.id],
-                set_={
-                    column.name: statement.excluded[column.name]
-                    for column in table.columns
-                    if not column.primary_key
-                },
-            ),
-            [{**row, **provenance} for row in rows],
-        )
 
     def _fail(self, failure: Failure) -> None:
         self.result.fail(failure)
@@ -293,13 +219,6 @@ class _CatalogSync:
             provider_id=failure.provider_id,
             reason=failure.reason,
         )
-
-
-def _stored(connection: Connection, table: Table, ids: list[str]) -> dict[str, Row]:
-    """The stored rows with these ids, by id, without their provenance columns."""
-    columns = [c for c in table.columns if c.name not in {"source", "fetched_at"}]
-    rows = connection.execute(select(*columns).where(table.c.id.in_(ids))).mappings()
-    return {row["id"]: dict(row) for row in rows}
 
 
 def _series_row(item: Series) -> Row:

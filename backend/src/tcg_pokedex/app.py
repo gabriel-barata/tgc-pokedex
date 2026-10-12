@@ -5,10 +5,10 @@ import httpx2
 from fastapi import FastAPI
 
 from tcg_pokedex.config import Settings
-from tcg_pokedex.db import create_database_engine
-from tcg_pokedex.routes import cards, health, images, sets, sync
-from tcg_pokedex.routes.sets import DownloadRegistry
-from tcg_pokedex.spa import SpaStaticFiles
+from tcg_pokedex.controllers import cards, health, images, sets, sync
+from tcg_pokedex.database import create_database_engine
+from tcg_pokedex.jobs.set_download import DownloadRegistry
+from tcg_pokedex.web.spa import SpaStaticFiles
 
 
 def create_app(

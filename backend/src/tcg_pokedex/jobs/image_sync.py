@@ -1,12 +1,5 @@
-"""`tcg sync images` and track-triggered downloads: cache card images and set artwork.
+"""`tcg sync images` and track-triggered downloads: cache card images and artwork."""
 
-Files live under the image directory as `cards/{card_id}/{size}.webp` and
-`sets/{set_id}/{kind}.webp`. Ids are percent-encoded, and `.` and `..` never name a
-file. Each file is written to a temporary file beside it, synced, then moved into place.
-"""
-
-import os
-import tempfile
 from collections import Counter
 from collections.abc import Callable
 from concurrent.futures import Executor, ThreadPoolExecutor
@@ -14,33 +7,38 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal
-from urllib.parse import quote
 
-from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Engine, exists, select
-from sqlalchemy.dialects import postgresql
+from sqlalchemy import Engine
 
-from tcg_pokedex.schemas import ArtworkKind, CardSize, RunStatus, SyncKind
-from tcg_pokedex.services.sync_runs import (
-    MAX_FAILURES,
-    SyncRun,
-    close_run,
-    finish_run,
-    log,
-    run_status,
-    start_run,
+from tcg_pokedex.jobs.image_store import (
+    card_path,
+    check_writable,
+    item_folder,
+    write_file,
 )
-from tcg_pokedex.tables import card_images, cards, set_artwork, sets, tracked_sets
-from tcg_pokedex.tcgdex import SOURCE, Tcgdex, TcgdexError
+from tcg_pokedex.jobs.runs import close_run, finish_run, log, run_status, start_run
+from tcg_pokedex.models.images import (
+    artwork_sources,
+    cached_artwork,
+    cards_with_image_language,
+    save_artwork,
+    save_card_images,
+)
+from tcg_pokedex.models.tracking import tracked_set_ids
+from tcg_pokedex.providers.tcgdex import Tcgdex, TcgdexError
+from tcg_pokedex.views.images import ArtworkKind, CardSize
+from tcg_pokedex.views.sync import (
+    MAX_FAILURES,
+    ImageCounts,
+    ImageFailure,
+    ImageSyncCounts,
+    ImageSyncResult,
+    RunStatus,
+    SyncKind,
+    SyncRun,
+)
 
 WORKERS = 8
-SUFFIX = ".webp"
-CATALOG_ORDER = (sets.c.release_date, sets.c.id)
-
-
-class ImageStoreUnavailableError(Exception):
-    """The image directory cannot be created or written, so no run can go on."""
 
 
 class Language(StrEnum):
@@ -85,36 +83,6 @@ def plan_card(card: CardToResolve) -> CardPlan:
     if card.files_present and card.language is Language.EN:
         return CardPlan.TRY_PT_KEEP_EN if card.pt_image_url else CardPlan.SKIP
     return CardPlan.TRY_PT_THEN_EN if card.pt_image_url else CardPlan.TRY_EN
-
-
-class _Model(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-
-class ImageFailure(_Model):
-    kind: Literal["card", "logo", "symbol"]
-    provider_id: str
-    reason: str
-
-
-class ImageCounts(_Model):
-    downloaded: int = Field(ge=0)
-    cached: int = Field(ge=0)
-    unavailable: int = Field(ge=0)
-    failed: int = Field(ge=0)
-
-
-class ImageSyncCounts(_Model):
-    cards: ImageCounts
-    artwork: ImageCounts
-
-
-class ImageSyncResult(_Model):
-    """`set_id` is set only on a run started by tracking that set."""
-
-    set_id: str | None
-    counts: ImageSyncCounts
-    failures: tuple[ImageFailure, ...] = Field(max_length=MAX_FAILURES)
 
 
 class ImageResultBuilder:
@@ -166,53 +134,6 @@ def _counts(outcomes: Counter[Outcome], failed: int) -> ImageCounts:
     )
 
 
-def card_path(image_dir: Path, card_id: str, size: CardSize) -> Path | None:
-    """The stored file, or None when it is absent or the id is invalid."""
-    return _existing(image_dir, "cards", card_id, size)
-
-
-def artwork_path(image_dir: Path, set_id: str, kind: ArtworkKind) -> Path | None:
-    return _existing(image_dir, "sets", set_id, kind)
-
-
-def _existing(image_dir: Path, area: str, item_id: str, name: str) -> Path | None:
-    if item_id in {".", ".."}:
-        return None
-    path = _folder(image_dir, area, item_id) / f"{name}{SUFFIX}"
-    return path if path.is_file() else None
-
-
-def _folder(image_dir: Path, area: str, item_id: str) -> Path:
-    if item_id in {".", ".."}:
-        raise ValueError(f"invalid id {item_id!r}")
-    return image_dir / area / quote(item_id, safe="")
-
-
-def write_file(folder: Path, name: str, content: bytes) -> None:
-    folder.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary = tempfile.mkstemp(dir=folder, suffix=".tmp")
-    try:
-        with os.fdopen(descriptor, "wb") as file:
-            file.write(content)
-            file.flush()
-            os.fsync(file.fileno())
-        os.replace(temporary, folder / f"{name}{SUFFIX}")
-    except BaseException:
-        Path(temporary).unlink(missing_ok=True)
-        raise
-
-
-def _check_writable(image_dir: Path) -> None:
-    try:
-        image_dir.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryFile(dir=image_dir):
-            pass
-    except OSError as error:
-        raise ImageStoreUnavailableError(
-            f"image directory {image_dir} is not writable: {error.strerror}"
-        ) from error
-
-
 def sync_images(
     engine: Engine,
     tcgdex: Tcgdex,
@@ -233,9 +154,9 @@ def sync_images(
     job = _ImageSync(engine, tcgdex, image_dir, run, ImageResultBuilder(set_id))
     error = None
     try:
-        _check_writable(image_dir)
+        check_writable(image_dir)
         with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-            for each in [set_id] if set_id else _tracked_set_ids(engine):
+            for each in [set_id] if set_id else tracked_set_ids(engine):
                 job.sync_cards(pool, each)
             if set_id is None:
                 job.sync_artwork(pool)
@@ -250,17 +171,6 @@ def sync_images(
         finished_at=now(),
     )
     return finish_run(engine, closed)
-
-
-def _tracked_set_ids(engine: Engine) -> list[str]:
-    """Sets tracked by any owner, in catalog order."""
-    statement = (
-        select(sets.c.id)
-        .where(exists().where(tracked_sets.c.set_id == sets.c.id))
-        .order_by(*CATALOG_ORDER)
-    )
-    with engine.connect() as connection:
-        return list(connection.scalars(statement))
 
 
 @dataclass(frozen=True)
@@ -299,39 +209,15 @@ class _ImageSync:
                     {
                         "card_id": outcome.card_id,
                         "language": outcome.language,
-                        "source": SOURCE,
                         "fetched_at": self._run.started_at,
                     }
                 )
-        if not rows:
-            return
-        statement = postgresql.insert(card_images)
-        with self._engine.begin() as connection:
-            connection.execute(
-                statement.on_conflict_do_update(
-                    index_elements=[card_images.c.card_id],
-                    set_={
-                        "language": statement.excluded.language,
-                        "source": statement.excluded.source,
-                        "fetched_at": statement.excluded.fetched_at,
-                    },
-                ),
-                rows,
-            )
+        if rows:
+            save_card_images(self._engine, rows)
 
     def sync_artwork(self, pool: Executor) -> None:
-        with self._engine.connect() as connection:
-            catalog = connection.execute(
-                select(sets.c.id, sets.c.logo_url, sets.c.symbol_url).order_by(
-                    *CATALOG_ORDER
-                )
-            ).all()
-            cached = {
-                (row.set_id, row.kind)
-                for row in connection.execute(
-                    select(set_artwork.c.set_id, set_artwork.c.kind)
-                )
-            }
+        catalog = artwork_sources(self._engine)
+        cached = cached_artwork(self._engine)
         to_fetch: list[tuple[str, ArtworkKind, str | None]] = []
         for set_id, logo_url, symbol_url in catalog:
             for kind in ArtworkKind:
@@ -350,14 +236,6 @@ class _ImageSync:
             self.result.count_artwork(outcome)
 
     def _cards_to_resolve(self, set_id: str) -> list[CardToResolve]:
-        statement = (
-            select(cards.c.id, cards.c.image_url, card_images.c.language)
-            .select_from(cards.outerjoin(card_images))
-            .where(cards.c.set_id == set_id)
-            .order_by(cards.c.id)
-        )
-        with self._engine.connect() as connection:
-            rows = connection.execute(statement).all()
         return [
             CardToResolve(
                 card_id=card_id,
@@ -367,21 +245,13 @@ class _ImageSync:
                     card_path(self._image_dir, card_id, size) for size in CardSize
                 ),
             )
-            for card_id, image_url, language in rows
+            for card_id, image_url, language in cards_with_image_language(
+                self._engine, set_id
+            )
         ]
 
     def _save_artwork(self, set_id: str, kind: ArtworkKind) -> None:
-        fetched_at = self._run.started_at
-        statement = postgresql.insert(set_artwork).values(
-            set_id=set_id, kind=kind.value, source=SOURCE, fetched_at=fetched_at
-        )
-        with self._engine.begin() as connection:
-            connection.execute(
-                statement.on_conflict_do_update(
-                    index_elements=[set_artwork.c.set_id, set_artwork.c.kind],
-                    set_={"source": SOURCE, "fetched_at": fetched_at},
-                )
-            )
+        save_artwork(self._engine, set_id, kind, self._run.started_at)
 
     def _fetch_artwork(
         self, item: tuple[str, ArtworkKind, str | None]
@@ -397,7 +267,7 @@ class _ImageSync:
             )
         if content is None:
             return Outcome.UNAVAILABLE
-        write_file(_folder(self._image_dir, "sets", set_id), kind, content)
+        write_file(item_folder(self._image_dir, "sets", set_id), kind, content)
         return Outcome.DOWNLOADED
 
     def _resolve(self, card: CardToResolve) -> _CardOutcome | ImageFailure:
@@ -427,7 +297,7 @@ class _ImageSync:
         images = self._tcgdex.card_images(base_url)
         if images is None:
             return False
-        folder = _folder(self._image_dir, "cards", card_id)
+        folder = item_folder(self._image_dir, "cards", card_id)
         write_file(folder, CardSize.SMALL, images[0])
         write_file(folder, CardSize.LARGE, images[1])
         return True

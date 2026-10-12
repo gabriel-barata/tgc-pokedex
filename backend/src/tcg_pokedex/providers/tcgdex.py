@@ -24,10 +24,8 @@ from pydantic import (
 )
 from pydantic.alias_generators import to_camel
 
-from tcg_pokedex.schemas import ArtworkKind, Variant
-
-SOURCE = "tcgdex"
-"""The provider name stored on every row and run fetched from TCGdex."""
+from tcg_pokedex.views.images import ArtworkKind
+from tcg_pokedex.views.ownership import Variant
 
 PT_API = "https://api.tcgdex.net/v2/pt"
 EN_CARDS_URL = "https://api.tcgdex.net/v2/en/cards"
