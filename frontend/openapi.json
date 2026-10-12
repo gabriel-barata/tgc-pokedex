@@ -33,6 +33,29 @@
         }
       }
     },
+    "/api/sets": {
+      "get": {
+        "summary": "List Sets",
+        "description": "Every set grouped by series, newest release first, with the owner's tracking.",
+        "operationId": "list_sets_api_sets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SeriesEntry"
+                  },
+                  "type": "array",
+                  "title": "Response List Sets Api Sets Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sets/{set_id}/tracking": {
       "get": {
         "summary": "Get Tracking",
@@ -312,6 +335,85 @@
           "database"
         ],
         "title": "HealthStatus"
+      },
+      "SeriesEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "sets": {
+            "items": {
+              "$ref": "#/components/schemas/SetEntry"
+            },
+            "type": "array",
+            "title": "Sets"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "sets"
+        ],
+        "title": "SeriesEntry"
+      },
+      "SetEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "release_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Release Date"
+          },
+          "card_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Card Count"
+          },
+          "has_logo": {
+            "type": "boolean",
+            "title": "Has Logo"
+          },
+          "has_symbol": {
+            "type": "boolean",
+            "title": "Has Symbol"
+          },
+          "tracked": {
+            "type": "boolean",
+            "title": "Tracked"
+          },
+          "downloading": {
+            "type": "boolean",
+            "title": "Downloading"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "release_date",
+          "card_count",
+          "has_logo",
+          "has_symbol",
+          "tracked",
+          "downloading"
+        ],
+        "title": "SetEntry",
+        "description": "A set as one owner sees it. `has_logo` and `has_symbol` mean cached."
       },
       "SetTracking": {
         "properties": {

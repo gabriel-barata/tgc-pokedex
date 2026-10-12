@@ -18,6 +18,10 @@ invariants below hold.
   value. The Typography and Tokens sections now point to it instead of listing values.
   The contrast pairs stay here as measured evidence. shadcn/ui, Tailwind CSS, the
   motifs, the favicon and the app shell are in place (decisions 8, 9, 11, 22, 23).
+- **2026-10-12 (PTCG-015):** the sets page is built and is the home page. Decision 16
+  gains the card-count rule, the tracking copy and the cover's content until the spine
+  bar exists (PTCG-019). Decision 16b: no set tint for now, so every cover uses plain
+  paper. The PTCG-015 open item is closed.
 
 ## Context
 
@@ -330,6 +334,16 @@ binder).
 - **"Todas as coleções"** follows, grouped by series, newest first: compact quiet rows
   with the set symbol, name, year, card count, and an "Acompanhar" button (secondary
   style). Tracked sets also appear here with "Acompanhando ✓".
+- **Card count** is the number printed on the cards ("182 cartas"), so secret rares
+  are not added. A set with no printed number, such as a promo set, shows its
+  distinct-card total. Variants (normal, reverse, holo) never count separately.
+- **Tracking copy:** "Acompanhar" tracks; a tracked set's button reads "Acompanhando"
+  with a check and untracks on press, with no confirmation, since untracking deletes
+  nothing. It is a toggle button (`aria-pressed`) whose name includes the set name.
+- **Until the spine bar exists** (PTCG-019), a cover shows the logo (or the set name
+  when there is no logo), name, series, year and card count, plus a quiet "Imagens
+  sendo sincronizadas" while its images download. With no tracked set, the section
+  shows the decision 20 empty state, whose link moves focus to "Todas as coleções".
 
 **Rejected:** a bookshelf of vertical spines (hard to read); one uniform list.
 
@@ -341,6 +355,10 @@ stored manually, is decided in PTCG-015), mixed **at most 16% into `surface.page
 and clamped to OKLCH L ≥ 0.92, so text keeps using the standard ink tokens and still
 passes contrast. When there is no tint, the plain paper is used. Buttons, chips, the
 bar and focus always keep the duo colors.
+
+**Decided in PTCG-015:** no tint for now. Every cover uses the plain paper. Many older
+sets have no logo to extract a tint from, and a manual color needs upkeep. A later
+card can add a source within the rule above.
 
 ### Behavior and feel
 
@@ -605,8 +623,6 @@ Owned and missing data in the mockups is fictional. Prices are illustrative.
 
 ## Open items for feature cards
 
-- **PTCG-015 (Browse sets):** where the set tint comes from (logo extraction at sync
-  vs. manual); the copy for tracking.
 - **PTCG-017 (Ownership domain):** the "wanted version" rule and the completion rule
   that the spine bar displays.
 - **PTCG-018 (Mark owned):** the default variant toggled by the sticker (assumed:

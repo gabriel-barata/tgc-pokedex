@@ -1,5 +1,6 @@
 """API request and response models, and the enums the routes take as path values."""
 
+from datetime import date
 from enum import StrEnum
 from typing import Literal
 
@@ -32,3 +33,26 @@ class SetTracking(BaseModel):
     cached: int = Field(ge=0)
     unavailable: int = Field(ge=0)
     downloading: bool
+
+
+class SetEntry(BaseModel):
+    """A set as one owner sees it. `has_logo` and `has_symbol` mean cached."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    name: str
+    release_date: date
+    card_count: int = Field(ge=0)
+    has_logo: bool
+    has_symbol: bool
+    tracked: bool
+    downloading: bool
+
+
+class SeriesEntry(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    name: str
+    sets: list[SetEntry]

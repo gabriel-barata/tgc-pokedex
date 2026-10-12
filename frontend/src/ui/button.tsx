@@ -9,6 +9,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary: "bg-action-primary-bg text-action-primary-fg hover:bg-action-primary-hover",
+        secondary:
+          "border border-border-hairline bg-surface-raised text-text-primary hover:bg-surface-sunken",
+        selected: "border border-popplio-300 bg-selected-bg text-selected-fg",
         ghost:
           "text-text-secondary hover:bg-surface-sunken hover:text-text-primary aria-expanded:bg-surface-sunken aria-expanded:text-text-primary",
       },

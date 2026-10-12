@@ -21,6 +21,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sets
+         * @description Every set grouped by series, newest release first, with the owner's tracking.
+         */
+        get: operations["list_sets_api_sets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sets/{set_id}/tracking": {
         parameters: {
             query?: never;
@@ -112,6 +132,40 @@ export interface components {
              */
             database: "ok" | "unavailable";
         };
+        /** SeriesEntry */
+        SeriesEntry: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Sets */
+            sets: components["schemas"]["SetEntry"][];
+        };
+        /**
+         * SetEntry
+         * @description A set as one owner sees it. `has_logo` and `has_symbol` mean cached.
+         */
+        SetEntry: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Release Date
+             * Format: date
+             */
+            release_date: string;
+            /** Card Count */
+            card_count: number;
+            /** Has Logo */
+            has_logo: boolean;
+            /** Has Symbol */
+            has_symbol: boolean;
+            /** Tracked */
+            tracked: boolean;
+            /** Downloading */
+            downloading: boolean;
+        };
         /**
          * SetTracking
          * @description A set's tracking state for one owner, and its image progress.
@@ -177,6 +231,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthStatus"];
+                };
+            };
+        };
+    };
+    list_sets_api_sets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeriesEntry"][];
                 };
             };
         };

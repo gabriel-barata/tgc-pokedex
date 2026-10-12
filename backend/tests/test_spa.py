@@ -62,7 +62,7 @@ def test_missing_files_are_not_found(client: TestClient, path: str) -> None:
     assert client.get(path).status_code == 404
 
 
-@pytest.mark.parametrize("path", ["/api", "/api/sets", "/api/sets/sv08"])
+@pytest.mark.parametrize("path", ["/api", "/api/cards", "/api/sets/sv08"])
 def test_unknown_api_paths_are_not_found(client: TestClient, path: str) -> None:
     response = client.get(path)
 

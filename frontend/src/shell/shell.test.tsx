@@ -12,7 +12,7 @@ function mainNav() {
 }
 
 beforeEach(() => {
-  server.use(http.get("/healthz", () => new Promise<never>(() => undefined)));
+  server.use(http.get("/api/sets", () => new Promise<never>(() => undefined)));
 });
 
 describe("app shell", () => {
@@ -61,7 +61,7 @@ describe("app shell", () => {
 
     await user.click(screen.getByRole("link", { name: shellStrings.home }));
 
-    expect(within(screen.getByRole("main")).getByRole("status")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: shellStrings.collections })).toBeTruthy();
   });
 
   it("shows a not-found page with a way home for an unknown path", async () => {
@@ -72,7 +72,7 @@ describe("app shell", () => {
 
     await user.click(screen.getByRole("link", { name: shellStrings.backHome }));
 
-    expect(within(screen.getByRole("main")).getByRole("status")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: shellStrings.collections })).toBeTruthy();
   });
 
   it("offers a labelled card search field in the top bar", () => {
