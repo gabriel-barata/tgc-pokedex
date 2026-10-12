@@ -1,0 +1,145 @@
+@import "tailwindcss";
+@import "@fontsource/fredoka/latin-500.css";
+@import "@fontsource/fredoka/latin-600.css";
+@import "@fontsource/nunito/latin-500.css";
+@import "@fontsource/nunito/latin-600.css";
+@import "@fontsource/nunito/latin-700.css";
+
+@theme static {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-cream-50: #fffdf8;
+  --color-cream-100: #fbf6ec;
+  --color-cream-200: #f1e8d8;
+  --color-cream-300: #e6d9c3;
+  --color-cream-500: #978466;
+  --color-bark-900: #3a2e28;
+  --color-bark-700: #6b5b50;
+  --color-bark-500: #8a796c;
+  --color-torchic-200: #f7cda8;
+  --color-torchic-400: #e8894b;
+  --color-torchic-500: #de7a3e;
+  --color-torchic-600: #b85a24;
+  --color-torchic-700: #9a4718;
+  --color-crest-400: #f2c14e;
+  --color-popplio-100: #e4f0f8;
+  --color-popplio-300: #9cc7e6;
+  --color-popplio-400: #6faed9;
+  --color-popplio-600: #2f6a97;
+  --color-popplio-800: #23395b;
+  --color-nose-300: #f2a7b8;
+  --color-clay-600: #a93a2c;
+
+  --color-surface-page: var(--color-cream-100);
+  --color-surface-raised: var(--color-cream-50);
+  --color-surface-sunken: var(--color-cream-200);
+  --color-border-hairline: var(--color-cream-300);
+  --color-border-sleeve: var(--color-cream-500);
+  --color-text-primary: var(--color-bark-900);
+  --color-text-secondary: var(--color-bark-700);
+  --color-text-accent: var(--color-torchic-700);
+  --color-action-primary-bg: var(--color-torchic-600);
+  --color-action-primary-fg: var(--color-white);
+  --color-action-primary-hover: var(--color-torchic-700);
+  --color-owned-mark: var(--color-torchic-600);
+  --color-progress-partial: var(--color-torchic-200);
+  --color-progress-partial-stripe: var(--color-torchic-600);
+  --color-link: var(--color-popplio-600);
+  --color-focus-ring: var(--color-popplio-600);
+  --color-selected-bg: var(--color-popplio-100);
+  --color-selected-fg: var(--color-popplio-800);
+  --color-ribbon-bg: var(--color-popplio-300);
+  --color-ribbon-fg: var(--color-popplio-800);
+  --color-danger: var(--color-clay-600);
+  --color-highlight-crest: var(--color-crest-400);
+  --color-highlight-nose: var(--color-nose-300);
+
+  --font-sans: "Nunito", ui-rounded, system-ui, sans-serif;
+  --font-display: "Fredoka", ui-rounded, system-ui, sans-serif;
+
+  --text-*: initial;
+  --text-display: 2.25rem;
+  --text-display--line-height: 2.5rem;
+  --text-display--font-weight: 600;
+  --text-title: 1.75rem;
+  --text-title--line-height: 2.125rem;
+  --text-title--font-weight: 600;
+  --text-heading: 1.25rem;
+  --text-heading--line-height: 1.625rem;
+  --text-heading--font-weight: 500;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-body--font-weight: 500;
+  --text-label: 0.875rem;
+  --text-label--line-height: 1.25rem;
+  --text-label--font-weight: 700;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--font-weight: 600;
+
+  --radius-*: initial;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  --shadow-*: initial;
+  --shadow-sm: 0 1px 2px rgb(92 64 36 / 0.08);
+  --shadow-md: 0 4px 12px rgb(92 64 36 / 0.1);
+  --shadow-lg: 0 16px 40px rgb(92 64 36 / 0.16);
+
+  --spacing: 0.25rem;
+
+  --breakpoint-*: initial;
+  --breakpoint-sm: 40rem;
+  --breakpoint-lg: 64rem;
+
+  --container-page: 90rem;
+  --container-search: 30rem;
+
+  --ease-*: initial;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-sticker: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --motion-fast: 140ms;
+  --motion-base: 200ms;
+  --motion-panel: 260ms;
+  --motion-celebrate-puff: 600ms;
+  --motion-celebrate-set: 1200ms;
+  --motion-reduced: 120ms;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-surface-page font-sans text-body text-text-primary;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .25 0 0 0 0 .14 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+
+  a {
+    @apply text-link underline decoration-[1.5px] underline-offset-3;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-focus-ring;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition-duration: var(--motion-reduced) !important;
+      transition-property: opacity, color, background-color, border-color !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

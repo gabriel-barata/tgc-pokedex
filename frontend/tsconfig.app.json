@@ -18,7 +18,10 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noUncheckedSideEffectImports": true,
-    "erasableSyntaxOnly": true
+    "erasableSyntaxOnly": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src"]
 }
