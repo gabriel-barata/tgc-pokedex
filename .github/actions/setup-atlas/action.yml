@@ -1,0 +1,6 @@
+name: Set up Atlas
+description: Install the standard Atlas build, which can read the SQLAlchemy models (the image ships the community build, which only applies migrations).
+runs:
+  using: composite
+  steps:
+    - uses: ariga/setup-atlas@v0

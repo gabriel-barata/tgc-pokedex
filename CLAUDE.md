@@ -123,15 +123,21 @@ Whole stack (run from the repo root; needs Docker):
   `deploy/README.md` covers install, the schedule, rollback (pin `TCG_POKEDEX_IMAGE_TAG` to a
   commit sha) and the expand/contract-only migration rule.
 
-Backend (run from `backend/`; needs `uv`, which installs Python 3.13). Layout under
-`src/tcg_pokedex/` (constitution, Principle III): `routes/<resource>.py` for the API,
-`services/<job>.py` for the syncs, `tables.py`, `schemas.py` and `tcgdex.py`; tests mirror it.
+Backend (run from `backend/`; needs `uv`, which installs Python 3.13, and the `atlas`
+standard build, e.g. `brew install ariga/tap/atlas`; `tcg migrate` needs only `atlas migrate
+apply`, so the image ships the community build pinned in `Dockerfile`). Layout under
+`src/tcg_pokedex/` (constitution, Principle III):
+`views/` (API shapes, enums), `models/` (table classes and every query), `controllers/`
+(HTTP handlers), `jobs/` (syncs), `providers/` (TCGdex client), `web/` (SPA files), plus
+`app.py`, `config.py`, `cli.py` and `database.py`; tests mirror it.
 
 - `uv sync`: install dependencies.
 - `uv run uvicorn tcg_pokedex.app:create_app --factory --reload`: dev server on :8000.
   Config comes from `TCG_POKEDEX_*` env vars or `backend/.env` (see `backend/.env.example`).
-- `uv run python -m tcg_pokedex.migrations`: upgrade `TCG_POKEDEX_DATABASE_URL` to the latest
-  migration. The container entrypoint runs the same command.
+- `uv run tcg migrate`: upgrade `TCG_POKEDEX_DATABASE_URL` to the latest migration with
+  `atlas migrate apply`. A database Alembic built is baselined on its first run. The
+  container entrypoint runs the same command.
+- `uv run tcg openapi`: print the API's OpenAPI schema as JSON (`pnpm generate:api` uses it).
 - `uv run tcg sync catalog`: copy the TCGdex `pt` catalog (series, sets, cards) into
   `TCG_POKEDEX_DATABASE_URL`. Prints the run as JSON on stdout, logs JSON lines on stderr,
   and exits `0`/`1`/`2` for succeeded/partial/failed.
@@ -144,8 +150,10 @@ Backend (run from `backend/`; needs `uv`, which installs Python 3.13). Layout un
   ("Sincronizar agora" on `/status`) starts the same in the background.
 - Only one sync runs at a time (a Postgres advisory lock): a `tcg sync` that finds another
   sync or set download running exits `2` without a run, and `POST /api/sync` answers `409`.
-- `uv run alembic revision --autogenerate -m "<summary>"`: draft a migration from the tables
-  in `tcg_pokedex/tables.py` (dev database at head first), then review it by hand.
+- `atlas migrate diff <summary> --env local`: draft a plain-SQL migration in
+  `backend/migrations/` from the table classes in `models/` (needs Docker for the dev
+  database), review it by hand; `atlas migrate hash` after editing it. CI fails when the
+  models and the migrations disagree.
 - `uv run pytest`: run the tests. Database tests start Postgres with Testcontainers, so
   Docker must be running.
 - `uv run pytest --cov`: run the tests with the coverage gate (branch coverage, 80% floor).

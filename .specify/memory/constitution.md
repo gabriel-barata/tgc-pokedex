@@ -42,18 +42,24 @@ followed.
 **Rationale**: Parallel copies of the same knowledge drift apart and cause silent bugs. Shared
 test assertions hide what each test actually checks.
 
-### III. Simple, Flat Structure
+### III. Readable MVC Structure
 
-- Code MUST be organized by route and by job: one module per API resource under `routes/`,
-  one module per sync job under `services/`, one module for all database tables, one for the
-  request/response schemas, and one client per external provider.
+- Backend code MUST be organized as MVC folders with one direction of dependency,
+  `views ← models ← controllers` (and `jobs`): `views/` holds the API shapes and enums and
+  imports nothing of ours; `models/` holds the table classes and every database query, and
+  returns views; `controllers/` holds the HTTP handlers; `jobs/` holds the syncs and other
+  background work; `providers/` holds one client per external provider.
+- SQL MUST live only in `models/`. A controller or a job calls one named model function and
+  contains no query.
 - Ports, adapters, in-memory fakes, and per-feature slice folders MUST NOT be introduced. A
   layer or indirection needs a justification in the plan's Deviations.
 - Pure rules worth unit-testing (e.g. what a sync creates, updates, or skips) MUST be plain
   functions in the module that uses them, free of I/O.
-- External providers MUST be called only from the sync services (Principle IV).
+- External providers MUST be called only from the jobs (Principle IV).
+- Database migrations MUST be plain SQL files generated from the table classes.
 
-**Rationale**: A simple change should touch a handful of files a person can review at once.
+**Rationale**: A reader should know where a change goes before opening a file, and find a
+query by its name, not by reading a route. Plain SQL migrations can be reviewed as written.
 Ports, fakes, and per-feature layering multiplied the files of every feature without making
 the app easier to change.
 
@@ -86,7 +92,7 @@ it from the start costs almost nothing.
   and the user approves that list with the plan; tests beyond it MUST NOT be added.
 - **Coverage**: backend branch coverage MUST be at least 80%.
 - **Unit**: pure rules (Principle III) MUST have unit tests. They run fast and do no I/O.
-- **Providers**: provider clients and the services that call them MUST be tested against
+- **Providers**: provider clients and the jobs that call them MUST be tested against
   recorded HTTP fixtures, kept to a few payloads trimmed to the fields the code reads. An
   optional, separate live-check job MAY detect provider API drift; it is not part of the regular suite.
 - **Database**: code that reads or writes the database MUST be tested against the real
@@ -153,4 +159,4 @@ either fixed or logged in the plan's Deviations.
 - Runtime development guidance (e.g. the agent guidance file) MUST stay consistent with this
   constitution and MUST NOT restate or override it.
 
-**Version**: 3.1.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-12
+**Version**: 4.0.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-12

@@ -12,6 +12,8 @@ ADD --checksum=sha256:02aa0cb229ba09050cba6638059dadb9eedc2276632ea43d6a57a2f8c1
 
 FROM supercronic-${TARGETARCH} AS supercronic
 
+FROM arigaio/atlas:latest-community@sha256:ff36c7ec43b3d4ab32ea980058b4682af9d3e95abdb81b63a25553fb80218156 AS atlas
+
 FROM node:26-slim AS frontend
 WORKDIR /app/frontend
 RUN npm install --global corepack@latest && corepack enable
@@ -42,6 +44,7 @@ WORKDIR /app
 COPY --from=backend /app /app
 COPY --from=frontend /app/frontend/dist /app/spa
 COPY --from=supercronic /supercronic /usr/local/bin/supercronic
+COPY --from=atlas /atlas /usr/local/bin/atlas
 COPY deploy/crontab /app/crontab
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
@@ -52,4 +55,4 @@ USER app
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --start-interval=2s --retries=3 \
     CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=4)"]
-CMD ["sh", "-c", "python -m tcg_pokedex.migrations && exec uvicorn tcg_pokedex.app:create_app --factory --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "tcg migrate && exec uvicorn tcg_pokedex.app:create_app --factory --host 0.0.0.0 --port 8000"]
