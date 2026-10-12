@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from tcg_pokedex.clock.ports import Clock
 from tcg_pokedex.image_cache.domain import (
+    ArtworkToFetch,
     CardImages,
     CardOutcome,
     CardPlan,
@@ -46,6 +47,8 @@ def sync_images(
 ) -> SyncRun[ImageSyncResult]:
     """Cache the card images of `set_id`, or of every tracked set when it is None.
 
+    A run with no `set_id` also caches every stored set's logo and symbol.
+
     The run is recorded before any download and closed at the end, also when it
     fails. Every row written carries the run's start time as its fetch time. A failed
     image is recorded and the run goes on; an unusable store or any other error fails
@@ -67,6 +70,8 @@ def sync_images(
             set_ids = [set_id] if set_id else ports.repository.tracked_set_ids()
             for each in set_ids:
                 job.sync_cards(pool, each)
+            if set_id is None:
+                job.sync_artwork(pool)
     except Exception as failure:
         error = str(failure)
         job.result.abort()
@@ -112,6 +117,35 @@ class _ImageSync:
             if outcome.outcome is not Outcome.CACHED:
                 rows.append((outcome.card_id, outcome.language))
         self._repository.save_card_images(rows, fetched_at=self._run.started_at)
+
+    def sync_artwork(self, pool: Executor) -> None:
+        to_fetch: list[ArtworkToFetch] = []
+        for artwork in self._repository.artwork_to_fetch():
+            if artwork.cached:
+                self.result.count_artwork(Outcome.CACHED)
+            else:
+                to_fetch.append(artwork)
+        outcomes = pool.map(self._fetch_artwork, to_fetch)
+        for artwork, outcome in zip(to_fetch, outcomes, strict=True):
+            if isinstance(outcome, ImageFailure):
+                self._fail(outcome)
+                continue
+            if outcome is Outcome.DOWNLOADED:
+                self._repository.save_artwork(
+                    artwork.set_id, artwork.kind, fetched_at=self._run.started_at
+                )
+            self.result.count_artwork(outcome)
+
+    def _fetch_artwork(self, artwork: ArtworkToFetch) -> Outcome | ImageFailure:
+        if artwork.url is None:
+            return Outcome.UNAVAILABLE
+        content = self._provider.fetch_artwork(
+            artwork.set_id, artwork.kind, artwork.url
+        )
+        if isinstance(content, bytes):
+            self._store.put_artwork(artwork.set_id, artwork.kind, content)
+            return Outcome.DOWNLOADED
+        return Outcome.UNAVAILABLE if isinstance(content, Missing) else content
 
     def _resolve(self, card: CardToResolve) -> CardOutcome | ImageFailure:
         plan = plan_card(card)
