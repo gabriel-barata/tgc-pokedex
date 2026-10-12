@@ -24,7 +24,8 @@ workflow only. It does not restate the constitution, and it defers to it on any 
 ## Working on a card
 
 One card = one branch = one PR. `/start-work PTCG-NNN [notes]` (`.claude/skills/start-work/`)
-runs steps 1–4 below and stops once the spec is written to `temp/specs/`.
+runs steps 1–4 below and stops once the plan (`spec-kit: no`) or spec (`spec-kit: yes`) is
+written to `temp/specs/`. Implementation always starts in a new session.
 
 1. Read the card. If a card listed under "Depends on" is not in `Done`, warn the user and ask
    before starting.
@@ -32,6 +33,12 @@ runs steps 1–4 below and stops once the spec is written to `temp/specs/`.
 3. Create the branch named in the card's **Branch** field (`PTCG-NNN-<short-slug>`) from an
    up-to-date `main`.
 4. Then, depending on the card:
+   - **`spec-kit: no`** (the default): enter plan mode and interview the user in depth, about
+     behaviour and also technology, architecture, data model, dependencies and file layout.
+     Each question has a recommended answer; up to 4 independent questions may go in one
+     round. The output of this session is the approved plan (context, behaviour, decisions,
+     changes, tests, commits, verification, out of scope), saved to
+     `temp/specs/PTCG-NNN-<short-slug>.md`. A new session implements it.
    - **`spec-kit: yes`**: first, in its own session, interview the user with the `grill-me`
      skill and write the result to `temp/specs/PTCG-NNN-<short-slug>.md`. Keep both short:
      - Interview: ask only about decisions that change the feature's behavior, one at a time,
@@ -45,12 +52,18 @@ runs steps 1–4 below and stops once the spec is written to `temp/specs/`.
      `/speckit-specify`: `/speckit-specify` → `/speckit-clarify` → `/speckit-plan` →
      `/speckit-tasks` → `/speckit-implement`. Spec-kit names the artifact folder after the
      branch, `specs/PTCG-NNN-<short-slug>/`, and refuses to run `/speckit-specify` on any
-     other branch. `/speckit-analyze` between tasks and implement is optional.
-   - **`spec-kit: no`** (chores, docs, spikes): agree on the open decisions with the user
-     before implementing, one question at a time, each with a recommended answer, and write
-     them to a short `temp/specs/PTCG-NNN-<short-slug>.md` (goal, agreed behaviour, done when,
-     out of scope). Skip the questions only when the user says the card is unambiguous.
+     other branch. `specs/` is gitignored: its artifacts stay local and never go in the PR.
+     `/speckit-analyze` between tasks and implement is optional. Spec-kit is being phased
+     out; new cards default to `spec-kit: no`.
 5. Commit, push the branch, open the PR, and move the card to `In Review (PR open)`.
+
+## Tests
+
+Test only the main behaviours: the happy path and the one or two failures that matter, then
+stop once the 80% coverage floor passes (constitution, Principle VI). Every plan (and every
+spec-kit `tasks.md`) lists the tests it will add, and the user approves that list with the plan.
+Don't add tests beyond it. Prefer one parametrized test over near-duplicates and keep fixtures
+small. A PR exists so a human can review it; a long test diff defeats that.
 
 ## Commits
 
@@ -180,7 +193,8 @@ Frontend (run from `frontend/`; needs Node 26+ and pnpm, pinned in `package.json
 
 ## spec-kit customizations
 
-Spec-kit is patched in place for ticket branches and mandatory test tasks:
+Spec-kit is patched in place for ticket branches and mandatory test tasks. Its artifacts in
+`specs/` are gitignored. The patched files:
 
 - `.specify/scripts/bash/common.sh` and `create-new-feature.sh`
 - `.claude/skills/speckit-specify/SKILL.md` and `.claude/skills/speckit-tasks/SKILL.md`

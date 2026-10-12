@@ -12,7 +12,8 @@ per feature in `/speckit-plan` and must comply with everything below.
 This applies to every change, with no exceptions beyond those listed here.
 
 - Every behavior change MUST start with a failing test and follow Red → Green → Refactor.
-- `tasks.md` MUST list each test task before the implementation task it covers.
+- The plan (or a spec-kit `tasks.md`) MUST list each test before the implementation it
+  covers.
 - A TDD cycle covers one major behaviour, not one file or one small step.
 - Each TDD cycle MUST be a commit pair: first a `test:` commit containing the failing test,
   then a `feat:` or `fix:` commit that makes it pass. Tests MUST NOT be committed after the
@@ -47,7 +48,7 @@ test assertions hide what each test actually checks.
   one module per sync job under `services/`, one module for all database tables, one for the
   request/response schemas, and one client per external provider.
 - Ports, adapters, in-memory fakes, and per-feature slice folders MUST NOT be introduced. A
-  layer or indirection needs a justification in the plan's Complexity Tracking table.
+  layer or indirection needs a justification in the plan's Deviations.
 - Pure rules worth unit-testing (e.g. what a sync creates, updates, or skips) MUST be plain
   functions in the module that uses them, free of I/O.
 - External providers MUST be called only from the sync services (Principle IV).
@@ -81,12 +82,13 @@ it from the start costs almost nothing.
 
 - **Scope**: tests MUST cover the main behaviours of a feature: the happy path and the failure
   paths that matter. They MUST NOT enumerate every edge case or spec scenario. Reaching the
-  coverage floor with main-behaviour tests is enough.
+  coverage floor with main-behaviour tests is enough. Every plan MUST list the tests it adds,
+  and the user approves that list with the plan; tests beyond it MUST NOT be added.
 - **Coverage**: backend branch coverage MUST be at least 80%.
 - **Unit**: pure rules (Principle III) MUST have unit tests. They run fast and do no I/O.
 - **Providers**: provider clients and the services that call them MUST be tested against
-  recorded HTTP fixtures, kept to a few payloads trimmed to the fields the code reads. An optional, separate live-check job MAY detect
-  provider API drift; it is not part of the regular suite.
+  recorded HTTP fixtures, kept to a few payloads trimmed to the fields the code reads. An
+  optional, separate live-check job MAY detect provider API drift; it is not part of the regular suite.
 - **Database**: code that reads or writes the database MUST be tested against the real
   database engine, never a mock or an in-memory stand-in.
 - **End-to-end**: each P1 user story MUST have at least one happy-path test through the real UI,
@@ -101,7 +103,7 @@ One PR per ticket exists so a human can review it; a suite that tests every deta
 
 - Build only what the current spec requires.
 - Speculative abstractions, options, or extension points are violations unless justified in
-  the plan's Complexity Tracking table.
+  the plan's Deviations.
 - YAGNI balances DRY: do not abstract ahead of real duplication (see Principle II).
 
 **Rationale**: Unused flexibility is a cost that is paid now, for a benefit that may never
@@ -127,27 +129,28 @@ The following gates are enforced in CI and block merging:
 2. The commit history shows red-before-green ordering for each TDD cycle (Principle I).
 3. Lint, formatting, and type/static checks pass with zero warnings. Every suppression MUST
    carry an inline justification.
-4. Every new dependency MUST have a one-line justification in `plan.md` explaining why a few
+4. Every new dependency MUST have a one-line justification in the plan explaining why a few
    lines of our own code would not do.
 
 `/speckit-analyze` is optional. When it runs, every constitution violation it reports MUST be
-either fixed or logged in Complexity Tracking.
+either fixed or logged in the plan's Deviations.
 
 ## Governance
 
 - This constitution supersedes all other practices and conventions in the project. When
   another document or guidance file conflicts with it, the constitution wins.
-- Amendments MUST be made through `/speckit-constitution` and documented with a Sync Impact
-  Report, and they MUST include a migration plan for any existing artifacts or code they
+- Amendments are direct edits to this file in a card's pull request. They MUST bump the
+  version and the Last Amended date, and the pull request description MUST carry a short Sync
+  Impact note: what changed, and the migration plan for any existing artifacts or code they
   affect.
 - Versioning follows semantic versioning:
   - **MAJOR**: a principle or governance rule is removed or redefined in an incompatible way.
   - **MINOR**: a principle or section is added, or guidance is materially expanded.
   - **PATCH**: clarifications, wording, or typo fixes that change no meaning.
 - Every plan (Constitution Check), every review, and every pull request MUST verify compliance.
-  Any deviation MUST be justified in the plan's Complexity Tracking table; otherwise it is
-  rejected.
+  Any deviation MUST be justified in the plan's Deviations (the Complexity Tracking table in
+  a spec-kit `plan.md`); otherwise it is rejected.
 - Runtime development guidance (e.g. the agent guidance file) MUST stay consistent with this
   constitution and MUST NOT restate or override it.
 
-**Version**: 3.0.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-12
+**Version**: 3.1.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-12
