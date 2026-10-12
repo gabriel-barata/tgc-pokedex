@@ -5,7 +5,7 @@ import httpx2
 
 from tcg_pokedex.catalog_sync.adapters.tcgdex import TcgdexProvider
 from tcg_pokedex.catalog_sync.domain import Card, Failure
-from tests.catalog_sync.tcgdex_fixtures import (
+from tests.tcgdex.fixtures import (
     HAPPY,
     FixtureRoutes,
     Reply,

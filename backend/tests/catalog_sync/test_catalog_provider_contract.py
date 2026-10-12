@@ -1,6 +1,6 @@
 """Contract every CatalogProvider must honour, run against the fake and the real one.
 
-Both providers serve the same catalog: the recorded TCGdex corpus (`tcgdex_fixtures`).
+Both serve the same catalog: the recorded TCGdex corpus (`tests/tcgdex/fixtures.py`).
 """
 
 from collections.abc import Callable, Mapping, Sequence
@@ -13,7 +13,7 @@ from tcg_pokedex.catalog_sync.domain import Failure, SetListing
 from tcg_pokedex.catalog_sync.fakes import InMemoryCatalogProvider
 from tcg_pokedex.catalog_sync.ports import CatalogProvider, ProviderUnavailableError
 from tests.catalog_sync.builders import make_card, make_listing
-from tests.catalog_sync.tcgdex_fixtures import (
+from tests.tcgdex.fixtures import (
     INDEX_DOWN,
     WITH_FAILURES,
     FixtureRoutes,

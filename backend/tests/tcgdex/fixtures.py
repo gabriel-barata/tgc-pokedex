@@ -1,7 +1,7 @@
-"""Serve the recorded TCGdex corpus to the adapter through `httpx2.MockTransport`.
+"""Serve recorded TCGdex answers to the adapters through `httpx2.MockTransport`.
 
-Every request needs an explicit route: an unknown path, or a route whose responses
-are used up, raises `AssertionError`. Route paths are relative to
+Every request needs an explicit route: an unknown URL, or a route whose responses are
+used up, raises `AssertionError`. A route is an absolute URL, or a path relative to
 `https://api.tcgdex.net/v2/pt/`.
 """
 
@@ -12,16 +12,25 @@ from pathlib import Path
 
 import httpx2
 
-FIXTURES = Path(__file__).parent / "fixtures" / "tcgdex"
-API_PREFIX = "/v2/pt/"
+FIXTURES = Path(__file__).parents[1] / "catalog_sync" / "fixtures" / "tcgdex"
+PT_API = "https://api.tcgdex.net/v2/pt/"
 
 
 @dataclass(frozen=True)
 class Reply:
-    """An HTTP answer: a status and an optional fixture file body."""
+    """An HTTP answer: a status and a body read from a fixture file or given as bytes.
+
+    `fixture` is relative to the pt API corpus, `FIXTURES`, or an absolute path.
+    """
 
     status: int = 200
-    fixture: str | None = None
+    fixture: str | Path | None = None
+    body: bytes | None = None
+
+    def content(self) -> bytes:
+        if self.body is not None:
+            return self.body
+        return (FIXTURES / self.fixture).read_bytes() if self.fixture else b"{}"
 
 
 def ok(fixture: str) -> tuple[Reply]:
@@ -41,17 +50,12 @@ class FixtureRoutes:
 
     def __call__(self, request: httpx2.Request) -> httpx2.Response:
         self.requests.append(request)
-        path = request.url.path.removeprefix(API_PREFIX)
-        answers = self._routes.get(path)
+        url = str(request.url)
+        answers = self._routes.get(url) or self._routes.get(url.removeprefix(PT_API))
         if not answers:
-            raise AssertionError(f"no fixture route left for {path!r}")
+            raise AssertionError(f"no fixture route left for {url!r}")
         answer = answers.popleft()
-        content = (FIXTURES / answer.fixture).read_bytes() if answer.fixture else b"{}"
-        return httpx2.Response(
-            answer.status,
-            headers={"Content-Type": "application/json"},
-            content=content,
-        )
+        return httpx2.Response(answer.status, content=answer.content())
 
 
 class SleepRecorder:

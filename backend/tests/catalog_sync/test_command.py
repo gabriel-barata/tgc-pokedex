@@ -19,7 +19,7 @@ from tcg_pokedex.clock.fake import FakeClock
 from tcg_pokedex.config import Settings
 from tcg_pokedex.database import create_database_engine
 from tcg_pokedex.migrations import upgrade_to_head
-from tests.catalog_sync.tcgdex_fixtures import (
+from tests.tcgdex.fixtures import (
     HAPPY,
     INDEX_DOWN,
     WITH_FAILURES,
