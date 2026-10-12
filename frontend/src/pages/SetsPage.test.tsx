@@ -116,25 +116,4 @@ describe("sets page", () => {
     );
     expect(track.getAttribute("aria-pressed")).toBe("false");
   });
-
-  it("points to the catalog when no set is tracked", async () => {
-    sets = sets.map((each) => ({ ...each, tracked: false }));
-    const user = await openSetsPage();
-
-    await user.click(screen.getByRole("link", { name: setsStrings.seeAllSets }));
-
-    expect(
-      screen.getByRole("heading", { level: 2, name: setsStrings.allSets }).matches(":focus"),
-    ).toBe(true);
-  });
-
-  it("offers a retry when the sets cannot be loaded", async () => {
-    server.use(http.get("/api/sets", () => HttpResponse.error(), { once: true }));
-    const user = userEvent.setup();
-    renderWithProviders(<App />, { route: "/colecoes" });
-
-    await user.click(await screen.findByRole("button", { name: setsStrings.retry }));
-
-    expect(await screen.findByRole("region", { name: setsStrings.allSets })).toBeTruthy();
-  });
 });

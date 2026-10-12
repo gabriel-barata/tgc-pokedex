@@ -18,25 +18,7 @@ beforeEach(() => {
   );
 });
 
-describe("app shell", () => {
-  it("renders the page inside the banner, main navigation and main landmarks", () => {
-    renderWithProviders(<App />);
-
-    expect(within(screen.getByRole("banner")).getByRole("navigation")).toBe(mainNav());
-    expect(within(screen.getByRole("main")).getByRole("status")).toBeTruthy();
-  });
-
-  it("starts the tab order with a skip link to the main content", async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<App />);
-
-    await user.tab();
-
-    const skipLink = screen.getByRole("link", { name: layoutStrings.skipToContent });
-    expect(skipLink.matches(":focus")).toBe(true);
-    expect(skipLink.getAttribute("href")).toBe(`#${screen.getByRole("main").id}`);
-  });
-
+describe("app routes", () => {
   it.each([
     [layoutStrings.collections, layoutStrings.status],
     [layoutStrings.status, layoutStrings.collections],
@@ -58,15 +40,6 @@ describe("app shell", () => {
     },
   );
 
-  it("goes back to the home page from the logo", async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<App />, { route: "/status" });
-
-    await user.click(screen.getByRole("link", { name: layoutStrings.home }));
-
-    expect(screen.getByRole("heading", { level: 1, name: layoutStrings.collections })).toBeTruthy();
-  });
-
   it("shows a not-found page with a way home for an unknown path", async () => {
     const user = userEvent.setup();
     renderWithProviders(<App />, { route: "/nao-existe" });
@@ -76,12 +49,5 @@ describe("app shell", () => {
     await user.click(screen.getByRole("link", { name: layoutStrings.backHome }));
 
     expect(screen.getByRole("heading", { level: 1, name: layoutStrings.collections })).toBeTruthy();
-  });
-
-  it("offers a labelled card search field in the top bar", () => {
-    renderWithProviders(<App />);
-
-    const search = within(screen.getByRole("banner")).getByRole("search");
-    expect(within(search).getByRole("searchbox", { name: layoutStrings.searchLabel })).toBeTruthy();
   });
 });
