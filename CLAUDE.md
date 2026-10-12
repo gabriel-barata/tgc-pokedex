@@ -125,7 +125,7 @@ Whole stack (run from the repo root; needs Docker):
 
 Backend (run from `backend/`; needs `uv`, which installs Python 3.13, and the `atlas`
 binary, e.g. `brew install ariga/tap/atlas`; CI and the image use the community build pinned
-in `Dockerfile`). Layout under `src/tcg_pokedex/` (constitution, Principle III):
+in `Dockerfile` only applies migrations; `migrate diff` needs the standard build). Layout under `src/tcg_pokedex/` (constitution, Principle III):
 `views/` (API shapes, enums), `models/` (table classes and every query), `controllers/`
 (HTTP handlers), `jobs/` (syncs), `providers/` (TCGdex client), `web/` (SPA files), plus
 `app.py`, `config.py`, `cli.py` and `database.py`; tests mirror it.
