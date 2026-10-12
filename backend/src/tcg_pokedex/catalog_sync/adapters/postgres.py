@@ -3,7 +3,8 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Engine, RowMapping, insert, select, update
+from sqlalchemy import Connection, Engine, RowMapping, Table, insert, select, update
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.exc import IntegrityError
 
 from tcg_pokedex.catalog_sync.adapters import tables
@@ -22,7 +23,10 @@ from tcg_pokedex.catalog_sync.ports import InvalidBatchError
 
 
 class PostgresCatalogRepository:
-    """CatalogRepository on Postgres. Each `save_set` is one transaction."""
+    """CatalogRepository on Postgres.
+
+    Each `save_set` is one transaction that upserts by provider id and never deletes.
+    """
 
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
@@ -85,21 +89,36 @@ class PostgresCatalogRepository:
         try:
             with self._engine.begin() as connection:
                 if batch.series is not None:
-                    connection.execute(
-                        insert(tables.series).values(
-                            _series_row(batch.series, fetched_at)
-                        )
+                    _upsert(
+                        connection,
+                        tables.series,
+                        [_series_row(batch.series, fetched_at)],
                     )
-                connection.execute(
-                    insert(tables.sets).values(_set_row(batch.card_set, fetched_at))
-                )
+                _upsert(connection, tables.sets, [_set_row(batch.card_set, fetched_at)])
                 if batch.cards:
-                    connection.execute(
-                        insert(tables.cards),
+                    _upsert(
+                        connection,
+                        tables.cards,
                         [_card_row(card, fetched_at) for card in batch.cards],
                     )
         except IntegrityError as error:
             raise InvalidBatchError(str(error.orig)) from error
+
+
+def _upsert(connection: Connection, table: Table, rows: list[dict[str, Any]]) -> None:
+    """Insert rows, replacing every column of a row whose id already exists."""
+    statement = postgresql.insert(table)
+    connection.execute(
+        statement.on_conflict_do_update(
+            index_elements=[table.c.id],
+            set_={
+                column.name: statement.excluded[column.name]
+                for column in table.columns
+                if not column.primary_key
+            },
+        ),
+        rows,
+    )
 
 
 def _run_row(run: SyncRun) -> dict[str, Any]:
