@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic import DirectoryPath, PostgresDsn
@@ -11,6 +12,8 @@ class Settings(BaseSettings):
     services (e.g. compose). database_url defaults to the throwaway local
     database from compose.dev.yml; every other environment sets it. spa_dir is
     the built frontend the app serves; it stays unset in dev, where Vite serves it.
+    image_dir is where cached card images and set artwork are kept, relative to
+    the working directory unless absolute.
     """
 
     model_config = SettingsConfigDict(
@@ -22,3 +25,4 @@ class Settings(BaseSettings):
         "postgresql+psycopg://tcg_pokedex:tcg_pokedex@localhost:5432/tcg_pokedex"
     )
     spa_dir: DirectoryPath | None = None
+    image_dir: Path = Path("data/images")

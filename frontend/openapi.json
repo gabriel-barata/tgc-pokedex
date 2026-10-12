@@ -32,10 +32,220 @@
           }
         }
       }
+    },
+    "/api/sets/{set_id}/tracking": {
+      "get": {
+        "summary": "Get Tracking",
+        "operationId": "get_tracking_api_sets__set_id__tracking_get",
+        "parameters": [
+          {
+            "name": "set_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Set Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetTracking"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The set is not in the catalog"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Track Set",
+        "description": "Track the set and, when it was untracked, download its images afterwards.",
+        "operationId": "track_set_api_sets__set_id__tracking_put",
+        "parameters": [
+          {
+            "name": "set_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Set Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetTracking"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The set is not in the catalog"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/images/cards/{card_id}/{size}": {
+      "get": {
+        "summary": "Card Image",
+        "operationId": "card_image_api_images_cards__card_id___size__get",
+        "parameters": [
+          {
+            "name": "card_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Card Id"
+            }
+          },
+          {
+            "name": "size",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CardSize"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "image/webp": {}
+            }
+          },
+          "304": {
+            "description": "The cached copy is current"
+          },
+          "404": {
+            "description": "The image is not cached"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/images/sets/{set_id}/{kind}": {
+      "get": {
+        "summary": "Set Artwork",
+        "operationId": "set_artwork_api_images_sets__set_id___kind__get",
+        "parameters": [
+          {
+            "name": "set_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Set Id"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ArtworkKind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "image/webp": {}
+            }
+          },
+          "304": {
+            "description": "The cached copy is current"
+          },
+          "404": {
+            "description": "The image is not cached"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "ArtworkKind": {
+        "type": "string",
+        "enum": [
+          "logo",
+          "symbol"
+        ],
+        "title": "ArtworkKind"
+      },
+      "CardSize": {
+        "type": "string",
+        "enum": [
+          "small",
+          "large"
+        ],
+        "title": "CardSize"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
       "HealthStatus": {
         "properties": {
           "status": {
@@ -61,6 +271,89 @@
           "database"
         ],
         "title": "HealthStatus"
+      },
+      "SetTracking": {
+        "properties": {
+          "set_id": {
+            "type": "string",
+            "title": "Set Id"
+          },
+          "tracked": {
+            "type": "boolean",
+            "title": "Tracked"
+          },
+          "total_cards": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Cards"
+          },
+          "cached": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cached"
+          },
+          "unavailable": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unavailable"
+          },
+          "downloading": {
+            "type": "boolean",
+            "title": "Downloading"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "set_id",
+          "tracked",
+          "total_cards",
+          "cached",
+          "unavailable",
+          "downloading"
+        ],
+        "title": "SetTracking",
+        "description": "A set's tracking state for one owner, and its image progress."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       }
     }
   }
