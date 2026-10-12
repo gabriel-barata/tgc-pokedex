@@ -11,7 +11,7 @@ from importlib.metadata import version
 
 import pytest
 
-from tcg_pokedex.schemas import ArtworkKind
+from tcg_pokedex.schemas import ArtworkKind, Variant
 from tcg_pokedex.tcgdex import (
     MAX_IMAGE_BYTES,
     Card,
@@ -19,7 +19,6 @@ from tcg_pokedex.tcgdex import (
     Series,
     SetListing,
     TcgdexError,
-    Variant,
     parse_card,
 )
 from tests.helpers import (

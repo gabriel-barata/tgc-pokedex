@@ -1,6 +1,7 @@
 """Set routes: list every set, track and untrack one, and read its image progress."""
 
 import threading
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
@@ -10,7 +11,15 @@ from sqlalchemy import Engine, Exists, delete, exists, func, select
 from sqlalchemy.dialects import postgresql
 
 from tcg_pokedex.db import get_engine
-from tcg_pokedex.schemas import ArtworkKind, SeriesEntry, SetEntry, SetTracking
+from tcg_pokedex.schemas import (
+    ArtworkKind,
+    CardOwnership,
+    SeriesEntry,
+    SetEntry,
+    SetTracking,
+    Variant,
+    VariantQuantity,
+)
 from tcg_pokedex.services.image_sync import sync_images
 from tcg_pokedex.tables import (
     HOUSEHOLD_OWNER_ID,
@@ -121,6 +130,27 @@ def card_count(official: int, total: int) -> int:
     Variants never count apart: the catalog holds one card per number.
     """
     return official or total
+
+
+def card_ownership(
+    card_id: str, listed: Sequence[Variant], stored: Mapping[Variant, int]
+) -> CardOwnership:
+    """The card's quantity per listed variant, and whether it is owned.
+
+    Owning any listed variant owns the card. The wanted version is missing when only
+    Normal is owned and the card lists another variant. Unlisted variants are ignored.
+    """
+    variants = [
+        VariantQuantity(variant=variant, quantity=stored.get(variant, 0))
+        for variant in listed
+    ]
+    held = {entry.variant for entry in variants if entry.quantity > 0}
+    return CardOwnership(
+        card_id=card_id,
+        variants=variants,
+        owned=bool(held),
+        wanted_version_missing=held == {Variant.NORMAL} and len(listed) > 1,
+    )
 
 
 @router.get("/{set_id}/tracking", responses=UNKNOWN_SET)

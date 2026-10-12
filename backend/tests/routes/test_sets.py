@@ -15,6 +15,7 @@ from sqlalchemy import Engine, insert, select
 from tcg_pokedex.app import create_app
 from tcg_pokedex.config import Settings
 from tcg_pokedex.routes.sets import DownloadRegistry, card_ownership
+from tcg_pokedex.schemas import Variant
 from tcg_pokedex.tables import (
     HOUSEHOLD_OWNER_ID,
     owners,
@@ -24,7 +25,7 @@ from tcg_pokedex.tables import (
     sync_runs,
     tracked_sets,
 )
-from tcg_pokedex.tcgdex import SOURCE, Variant
+from tcg_pokedex.tcgdex import SOURCE
 from tests.helpers import (
     SEEDED_AT,
     FixtureRoutes,

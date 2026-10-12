@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from tcg_pokedex.tables import MAX_QUANTITY
+
 
 class CardSize(StrEnum):
     SMALL = "small"
@@ -15,6 +17,16 @@ class CardSize(StrEnum):
 class ArtworkKind(StrEnum):
     LOGO = "logo"
     SYMBOL = "symbol"
+
+
+class Variant(StrEnum):
+    """A printing a card exists in. Declaration order is the canonical storage order."""
+
+    NORMAL = "normal"
+    REVERSE = "reverse"
+    HOLO = "holo"
+    FIRST_EDITION = "first_edition"
+    W_PROMO = "w_promo"
 
 
 class HealthStatus(BaseModel):
@@ -56,3 +68,23 @@ class SeriesEntry(BaseModel):
     id: str
     name: str
     sets: list[SetEntry]
+
+
+class VariantQuantity(BaseModel):
+    """How many copies of one variant of a card the owner has."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    variant: Variant
+    quantity: int = Field(ge=0, le=MAX_QUANTITY)
+
+
+class CardOwnership(BaseModel):
+    """A card's quantity per listed variant, in canonical order, and its flags."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    card_id: str
+    variants: list[VariantQuantity]
+    owned: bool
+    wanted_version_missing: bool

@@ -23,6 +23,8 @@ HOUSEHOLD_OWNER_ID = UUID("9fb0c458-5ccf-477a-945e-276438b0f310")
 """The single owner every user-owned record belongs to in the MVP, seeded by the
 first migration. Profiles (PTCG-031) replace it."""
 HOUSEHOLD_OWNER_NAME = "Casa"
+MAX_QUANTITY = 999
+"""The most copies of one card variant an owner can record."""
 
 
 def _provenance() -> tuple[Column[str], Column[datetime]]:
@@ -117,4 +119,14 @@ set_artwork = Table(
     Column("kind", Text, primary_key=True),
     *_provenance(),
     CheckConstraint("kind IN ('logo', 'symbol')", name="kind_known"),
+)
+
+ownership = Table(
+    "ownership",
+    metadata,
+    Column("owner_id", Uuid(as_uuid=True), ForeignKey("owners.id"), primary_key=True),
+    Column("card_id", Text, ForeignKey("cards.id"), primary_key=True),
+    Column("variant", Text, primary_key=True),
+    Column("quantity", Integer, nullable=False),
+    CheckConstraint(f"quantity BETWEEN 0 AND {MAX_QUANTITY}", name="quantity_in_range"),
 )

@@ -13,6 +13,7 @@ from sqlalchemy import Connection, Engine, Table, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.exc import IntegrityError
 
+from tcg_pokedex.schemas import Variant
 from tcg_pokedex.services.sync_runs import (
     MAX_FAILURES,
     RunStatus,
@@ -33,7 +34,6 @@ from tcg_pokedex.tcgdex import (
     Series,
     Tcgdex,
     TcgdexError,
-    Variant,
 )
 
 POCKET_SERIES_ID = "tcgp"
