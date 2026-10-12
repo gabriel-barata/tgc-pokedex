@@ -1,21 +1,44 @@
 """Set tracking routes on `create_app`, real Postgres and recorded TCGdex answers."""
 
 from collections.abc import Iterator
+from datetime import date
 from pathlib import Path
+from uuid import UUID
 
 import httpx2
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import PostgresDsn
-from sqlalchemy import Engine, select
+from sqlalchemy import Engine, insert, select
 
 from tcg_pokedex.app import create_app
 from tcg_pokedex.config import Settings
-from tcg_pokedex.tables import sync_runs
-from tests.helpers import FixtureRoutes, card_row, english, image, seed, set_row
+from tcg_pokedex.routes.sets import DownloadRegistry
+from tcg_pokedex.tables import (
+    HOUSEHOLD_OWNER_ID,
+    owners,
+    series,
+    set_artwork,
+    sets,
+    sync_runs,
+    tracked_sets,
+)
+from tcg_pokedex.tcgdex import SOURCE
+from tests.helpers import (
+    SEEDED_AT,
+    FixtureRoutes,
+    card_row,
+    english,
+    image,
+    seed,
+    set_row,
+)
 
 PT_001 = "https://assets.tcgdex.net/pt/sv/sv01/001"
 EN_002 = "https://assets.tcgdex.net/en/swsh/swshp/SWSH032"
+OTHER_OWNER_ID = UUID("00000000-0000-4000-8000-000000000002")
+PROVENANCE = {"source": SOURCE, "fetched_at": SEEDED_AT}
 
 
 @pytest.fixture
@@ -31,9 +54,9 @@ def served() -> FixtureRoutes:
 
 
 @pytest.fixture
-def client(
+def app(
     database_url: str, engine: Engine, tmp_path: Path, served: FixtureRoutes
-) -> Iterator[TestClient]:
+) -> FastAPI:
     seed(
         engine,
         [set_row()],
@@ -46,7 +69,11 @@ def client(
     settings = Settings(
         database_url=PostgresDsn(database_url), image_dir=tmp_path / "images"
     )
-    app = create_app(settings, tcgdex_transport=httpx2.MockTransport(served))
+    return create_app(settings, tcgdex_transport=httpx2.MockTransport(served))
+
+
+@pytest.fixture
+def client(app: FastAPI) -> Iterator[TestClient]:
     with TestClient(app) as test_client:
         yield test_client
 
@@ -91,3 +118,96 @@ def test_untracking_keeps_the_cached_images(client: TestClient) -> None:
 @pytest.mark.parametrize("method", ["GET", "PUT", "DELETE"])
 def test_an_unknown_set_is_not_found(client: TestClient, method: str) -> None:
     assert client.request(method, "/api/sets/xy1/tracking").status_code == 404
+
+
+def test_sets_are_listed_by_series_newest_first_with_the_owners_tracking(
+    app: FastAPI, client: TestClient, engine: Engine
+) -> None:
+    with engine.begin() as connection:
+        connection.execute(
+            insert(series).values(id="me", name="Megaevolução", **PROVENANCE)
+        )
+        connection.execute(
+            insert(sets),
+            [
+                {**set_row(id=set_id, release_date=released, **more), **PROVENANCE}
+                for set_id, released, more in [
+                    ("sv02", date(2023, 6, 9), {"name": "Evoluções em Paldea"}),
+                    (
+                        "mep",
+                        date(2025, 9, 26),
+                        {
+                            "series_id": "me",
+                            "name": "MEP Black Star Promos",
+                            "official_count": 0,
+                            "total_count": 88,
+                        },
+                    ),
+                ]
+            ],
+        )
+        connection.execute(insert(owners).values(id=OTHER_OWNER_ID, name="Outra"))
+        connection.execute(
+            insert(tracked_sets),
+            [
+                {
+                    "owner_id": HOUSEHOLD_OWNER_ID,
+                    "set_id": "sv01",
+                    "tracked_at": SEEDED_AT,
+                },
+                {"owner_id": OTHER_OWNER_ID, "set_id": "sv02", "tracked_at": SEEDED_AT},
+            ],
+        )
+        connection.execute(
+            insert(set_artwork).values(set_id="sv01", kind="logo", **PROVENANCE)
+        )
+    registry: DownloadRegistry = app.state.registry
+    registry.start("mep")
+
+    listed = client.get("/api/sets")
+
+    assert listed.status_code == 200
+    assert listed.json() == [
+        {
+            "id": "me",
+            "name": "Megaevolução",
+            "sets": [
+                {
+                    "id": "mep",
+                    "name": "MEP Black Star Promos",
+                    "release_date": "2025-09-26",
+                    "card_count": 88,
+                    "has_logo": False,
+                    "has_symbol": False,
+                    "tracked": False,
+                    "downloading": True,
+                }
+            ],
+        },
+        {
+            "id": "sv",
+            "name": "Escarlate e Violeta",
+            "sets": [
+                {
+                    "id": "sv02",
+                    "name": "Evoluções em Paldea",
+                    "release_date": "2023-06-09",
+                    "card_count": 198,
+                    "has_logo": False,
+                    "has_symbol": False,
+                    "tracked": False,
+                    "downloading": False,
+                },
+                {
+                    "id": "sv01",
+                    "name": "Escarlate e Violeta",
+                    "release_date": "2023-03-31",
+                    "card_count": 198,
+                    "has_logo": True,
+                    "has_symbol": False,
+                    "tracked": True,
+                    "downloading": False,
+                },
+            ],
+        },
+    ]
