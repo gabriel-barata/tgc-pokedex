@@ -35,29 +35,31 @@ followed.
   - configuration.
 - Code duplication follows the rule of three: extract on the third occurrence, during the
   Refactor step, and not before.
-- Tests favor clarity over DRY. Builders, factories, and port fakes MUST be shared, but
+- Tests favor clarity over DRY. Builders, factories, and recorded fixtures MUST be shared, but
   assertions MUST stay explicit inside each test.
 
 **Rationale**: Parallel copies of the same knowledge drift apart and cause silent bugs. Shared
 test assertions hide what each test actually checks.
 
-### III. Ports & Adapters, Vertical Slices
+### III. Simple, Flat Structure
 
-- The domain core MUST be pure: no I/O, framework, database, network, or clock dependencies.
-- All interaction with the outside world MUST go through ports (persistence, catalog provider,
-  price provider, clock). Dependencies MUST point inward only.
-- Code MUST be organized by feature slice (e.g. `collection-tracking`, `catalog-sync`,
-  `pricing`). Each slice holds its own domain, ports, and adapters; global layer folders are
-  not allowed.
-- Each port MUST have exactly one shared in-memory fake.
+- Code MUST be organized by route and by job: one module per API resource under `routes/`,
+  one module per sync job under `services/`, one module for all database tables, one for the
+  request/response schemas, and one client per external provider.
+- Ports, adapters, in-memory fakes, and per-feature slice folders MUST NOT be introduced. A
+  layer or indirection needs a justification in the plan's Complexity Tracking table.
+- Pure rules worth unit-testing (e.g. what a sync creates, updates, or skips) MUST be plain
+  functions in the module that uses them, free of I/O.
+- External providers MUST be called only from the sync services (Principle IV).
 
-**Rationale**: A pure core can be unit-tested quickly and does not depend on the stack chosen.
-Organizing by slice keeps each feature's code together, so a change stays local to it.
+**Rationale**: A simple change should touch a handful of files a person can review at once.
+Ports, fakes, and per-feature layering multiplied the files of every feature without making
+the app easier to change.
 
 ### IV. Own the Data, Isolate Providers
 
-- External sources of card, set, and price data MUST be accessed only through adapters, during
-  a periodic sync job that writes into the app's own store.
+- External sources of card, set, and price data MUST be accessed only through their provider
+  client, during a sync job that writes into the app's own store.
 - The app MUST read only from its own store and MUST NOT call a provider at request time.
 - All externally sourced data MUST carry its source and fetched-at timestamp. History MUST be
   appended, never overwritten.
@@ -81,22 +83,19 @@ it from the start costs almost nothing.
   paths that matter. They MUST NOT enumerate every edge case or spec scenario. Reaching the
   coverage floor with main-behaviour tests is enough.
 - **Coverage**: backend branch coverage MUST be at least 80%.
-- **Unit**: all domain logic MUST have unit tests. They run fast, do no I/O, and make up the
-  bulk of the suite.
-- **Port contract suites**: each port MUST have one shared contract suite, run against BOTH its
-  in-memory fake and its real adapter.
-- **Provider adapters**: MUST be tested against recorded fixtures, kept to a few payloads
-  trimmed to the fields the adapter reads. An optional, separate live-check job MAY detect
+- **Unit**: pure rules (Principle III) MUST have unit tests. They run fast and do no I/O.
+- **Providers**: provider clients and the services that call them MUST be tested against
+  recorded HTTP fixtures, kept to a few payloads trimmed to the fields the code reads. An optional, separate live-check job MAY detect
   provider API drift; it is not part of the regular suite.
-- **Persistence adapters**: MUST have integration tests against the real database engine,
-  never a mock of it.
+- **Database**: code that reads or writes the database MUST be tested against the real
+  database engine, never a mock or an in-memory stand-in.
 - **End-to-end**: each P1 user story MUST have at least one happy-path test through the real UI,
   using role-based selectors.
 - Tests MUST NOT call the real network. Time-dependent logic MUST use an injected clock.
 
-**Rationale**: Contract suites prove that the fakes behave like the real adapters, which makes
-it safe to rely on fast fake-backed tests. Role-based selectors also check accessibility. One PR
-per ticket exists so a human can review it; a suite that tests every detail defeats that.
+**Rationale**: Testing against the real database and recorded provider answers checks what
+actually runs, with no stand-ins to keep in sync. Role-based selectors also check accessibility.
+One PR per ticket exists so a human can review it; a suite that tests every detail defeats that.
 
 ### VII. Simplicity (YAGNI)
 
@@ -150,4 +149,4 @@ The following gates are enforced in CI and block merging:
 - Runtime development guidance (e.g. the agent guidance file) MUST stay consistent with this
   constitution and MUST NOT restate or override it.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-12
+**Version**: 2.0.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-12
