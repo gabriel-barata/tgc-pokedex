@@ -14,7 +14,7 @@ from sqlalchemy import Engine, insert, select
 
 from tcg_pokedex.app import create_app
 from tcg_pokedex.config import Settings
-from tcg_pokedex.routes.sets import DownloadRegistry, card_ownership
+from tcg_pokedex.routes.sets import DownloadRegistry, card_ownership, set_completion
 from tcg_pokedex.schemas import Variant
 from tcg_pokedex.tables import (
     HOUSEHOLD_OWNER_ID,
@@ -137,6 +137,14 @@ def owned_client(client: TestClient, engine: Engine) -> TestClient:
     return client
 
 
+SV01_COMPLETION = {"owned": 6, "so_normal": 1, "total": 198, "complete": False}
+SV02_COMPLETION = {"owned": 2, "so_normal": 1, "total": 2, "complete": True}
+
+
+def none_of(total: int) -> dict[str, Any]:
+    return {"owned": 0, "so_normal": 0, "total": total, "complete": False}
+
+
 def card(card_id: str, owned: bool, missing: bool, **quantities: int) -> dict[str, Any]:
     return {
         "card_id": card_id,
@@ -252,6 +260,7 @@ def test_sets_are_listed_by_series_newest_first_with_the_owners_tracking(
                     "has_symbol": False,
                     "tracked": False,
                     "downloading": True,
+                    "completion": none_of(88),
                 }
             ],
         },
@@ -268,6 +277,7 @@ def test_sets_are_listed_by_series_newest_first_with_the_owners_tracking(
                     "has_symbol": False,
                     "tracked": False,
                     "downloading": False,
+                    "completion": none_of(198),
                 },
                 {
                     "id": "sv01",
@@ -278,6 +288,7 @@ def test_sets_are_listed_by_series_newest_first_with_the_owners_tracking(
                     "has_symbol": False,
                     "tracked": True,
                     "downloading": False,
+                    "completion": none_of(198),
                 },
             ],
         },
@@ -324,6 +335,7 @@ def test_a_sets_ownership_lists_every_card_with_its_quantities_and_flags(
     assert read.status_code == 200
     assert read.json() == {
         "set_id": "sv01",
+        "completion": SV01_COMPLETION,
         "cards": [
             card("sv01-001", False, False, normal=0, reverse=0),
             card("sv01-002", True, True, normal=2, reverse=0),
@@ -349,3 +361,41 @@ def test_a_recorded_quantity_survives_a_restart(
         read = restarted.get("/api/sets/sv01/ownership").json()
 
     assert read["cards"][0] == card("sv01-001", True, True, normal=1, reverse=0)
+
+
+@pytest.mark.parametrize(
+    ("total", "owned", "so_normal", "expected"),
+    [
+        (0, 0, 0, (0, 0, False)),
+        (198, 0, 0, (0, 0, False)),
+        (198, 198, 7, (198, 7, True)),
+        (198, 205, 9, (198, 9, True)),
+        (3, 5, 5, (3, 3, True)),
+    ],
+)
+def test_set_completion_caps_owned_at_the_total(
+    total: int, owned: int, so_normal: int, expected: tuple[int, int, bool]
+) -> None:
+    completion = set_completion(total, owned, so_normal)
+
+    assert (completion.owned, completion.so_normal, completion.complete) == expected
+    assert completion.total == total
+
+
+def test_completion_is_the_same_on_the_set_read_and_the_sets_list(
+    owned_client: TestClient,
+) -> None:
+    expected = {"sv01": SV01_COMPLETION, "sv02": SV02_COMPLETION}
+
+    listed = {
+        entry["id"]: entry["completion"]
+        for group in owned_client.get("/api/sets").json()
+        for entry in group["sets"]
+    }
+    read = {
+        set_id: owned_client.get(f"/api/sets/{set_id}/ownership").json()["completion"]
+        for set_id in expected
+    }
+
+    assert listed == expected
+    assert read == expected
