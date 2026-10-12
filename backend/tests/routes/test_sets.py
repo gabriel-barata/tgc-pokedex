@@ -1,8 +1,9 @@
-"""Set tracking routes on `create_app`, real Postgres and recorded TCGdex answers."""
+"""Set routes on `create_app`, real Postgres and recorded TCGdex answers."""
 
 from collections.abc import Iterator, Mapping, Sequence
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import httpx2
 import pytest
@@ -17,6 +18,7 @@ from tcg_pokedex.routes.sets import DownloadRegistry, card_ownership
 from tcg_pokedex.schemas import Variant
 from tcg_pokedex.tables import (
     HOUSEHOLD_OWNER_ID,
+    cards,
     owners,
     series,
     set_artwork,
@@ -32,6 +34,7 @@ from tests.helpers import (
     card_row,
     english,
     image,
+    own,
     seed,
     set_row,
 )
@@ -77,6 +80,73 @@ def app(
 def client(app: FastAPI) -> Iterator[TestClient]:
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def owned_client(client: TestClient, engine: Engine) -> TestClient:
+    """The client, with more sv01 cards and a small sv02 set owned by the household
+    and another owner.
+
+    sv02 prints 2 cards and has a third beyond the printed count.
+    """
+    with engine.begin() as connection:
+        connection.execute(
+            insert(sets),
+            {
+                **set_row(
+                    id="sv02",
+                    name="Evoluções em Paldea",
+                    release_date=date(2023, 6, 9),
+                    official_count=2,
+                    total_count=3,
+                ),
+                **PROVENANCE,
+            },
+        )
+        connection.execute(
+            insert(cards),
+            [
+                {**card_row(id=card_id, set_id=set_id, variants=variants), **PROVENANCE}
+                for card_id, set_id, variants in [
+                    ("sv01-004", "sv01", ["normal"]),
+                    ("sv01-005", "sv01", ["holo"]),
+                    ("sv01-006", "sv01", ["normal", "reverse"]),
+                    ("sv01-199", "sv01", ["normal", "reverse"]),
+                    ("sv02-001", "sv02", ["normal", "reverse"]),
+                    ("sv02-002", "sv02", ["normal"]),
+                    ("sv02-003", "sv02", ["holo"]),
+                ]
+            ],
+        )
+        connection.execute(insert(owners).values(id=OTHER_OWNER_ID, name="Outra"))
+    for card_id, variant, quantity in [
+        ("sv01-002", "normal", 2),
+        ("sv01-003", "reverse", 1),
+        ("sv01-004", "normal", 1),
+        ("sv01-005", "holo", 1),
+        ("sv01-006", "normal", 1),
+        ("sv01-006", "reverse", 1),
+        ("sv01-199", "reverse", 2),
+        ("sv02-001", "normal", 1),
+        ("sv02-002", "normal", 1),
+        ("sv02-003", "holo", 1),
+    ]:
+        own(engine, card_id, variant, quantity)
+    own(engine, "sv01-001", "normal", 5, owner_id=OTHER_OWNER_ID)
+    own(engine, "sv01-005", "holo", 3, owner_id=OTHER_OWNER_ID)
+    return client
+
+
+def card(card_id: str, owned: bool, missing: bool, **quantities: int) -> dict[str, Any]:
+    return {
+        "card_id": card_id,
+        "variants": [
+            {"variant": variant, "quantity": quantity}
+            for variant, quantity in quantities.items()
+        ],
+        "owned": owned,
+        "wanted_version_missing": missing,
+    }
 
 
 def test_tracking_a_set_downloads_its_images_once(
@@ -244,3 +314,38 @@ def test_card_ownership_follows_the_rules_table(
         "owned": owned,
         "wanted_version_missing": wanted_version_missing,
     }
+
+
+def test_a_sets_ownership_lists_every_card_with_its_quantities_and_flags(
+    owned_client: TestClient,
+) -> None:
+    read = owned_client.get("/api/sets/sv01/ownership")
+
+    assert read.status_code == 200
+    assert read.json() == {
+        "set_id": "sv01",
+        "cards": [
+            card("sv01-001", False, False, normal=0, reverse=0),
+            card("sv01-002", True, True, normal=2, reverse=0),
+            card("sv01-003", True, False, normal=0, reverse=1),
+            card("sv01-004", True, False, normal=1),
+            card("sv01-005", True, False, holo=1),
+            card("sv01-006", True, False, normal=1, reverse=1),
+            card("sv01-199", True, False, normal=0, reverse=2),
+        ],
+    }
+    assert owned_client.get("/api/sets/xy1/ownership").status_code == 404
+
+
+def test_a_recorded_quantity_survives_a_restart(
+    client: TestClient, database_url: str, tmp_path: Path
+) -> None:
+    client.post("/api/cards/sv01-001/ownership/normal/increment")
+    settings = Settings(
+        database_url=PostgresDsn(database_url), image_dir=tmp_path / "images"
+    )
+
+    with TestClient(create_app(settings)) as restarted:
+        read = restarted.get("/api/sets/sv01/ownership").json()
+
+    assert read["cards"][0] == card("sv01-001", True, True, normal=1, reverse=0)
