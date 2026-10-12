@@ -1,82 +1,27 @@
 {
-  "cardCount": {
-    "firstEd": 0,
-    "holo": 93,
-    "normal": 165,
-    "official": 198,
-    "reverse": 186,
-    "total": 258
-  },
-  "cards": [
-    {
-      "id": "sv01-001",
-      "image": "https://assets.tcgdex.net/pt/sv/sv01/001",
-      "localId": "001",
-      "name": "Pineco"
-    },
-    {
-      "id": "sv01-002",
-      "image": "https://assets.tcgdex.net/pt/sv/sv01/002",
-      "localId": "002",
-      "name": "Heracross"
-    },
-    {
-      "id": "sv01-003",
-      "image": "https://assets.tcgdex.net/pt/sv/sv01/003",
-      "localId": "003",
-      "name": "Shroomish"
-    },
-    {
-      "id": "sv01-004",
-      "image": "https://assets.tcgdex.net/pt/sv/sv01/004",
-      "localId": "004",
-      "name": "Breloom"
-    },
-    {
-      "id": "sv01-005",
-      "image": "https://assets.tcgdex.net/pt/sv/sv01/005",
-      "localId": "005",
-      "name": "Cacnea"
-    },
-    {
-      "id": "sv01-006",
-      "image": "https://assets.tcgdex.net/pt/sv/sv01/006",
-      "localId": "006",
-      "name": "Cacturne"
-    },
-    {
-      "id": "sv01-007",
-      "image": "https://assets.tcgdex.net/pt/sv/sv01/007",
-      "localId": "007",
-      "name": "Tropius"
-    },
-    {
-      "id": "sv01-008",
-      "image": "https://assets.tcgdex.net/pt/sv/sv01/008",
-      "localId": "008",
-      "name": "Scatterbug"
-    },
-    {
-      "id": "sv01-009",
-      "image": "https://assets.tcgdex.net/pt/sv/sv01/009",
-      "localId": "009",
-      "name": "Spewpa"
-    }
-  ],
   "id": "sv01",
-  "legal": {
-    "expanded": true,
-    "standard": false
-  },
-  "logo": "https://assets.tcgdex.net/pt/sv/sv01/logo",
   "name": "Escarlate e Violeta",
   "releaseDate": "2023-03-31",
   "serie": {
     "id": "sv",
     "name": "Escarlate e Violeta"
   },
+  "cardCount": {
+    "official": 198,
+    "total": 258
+  },
+  "logo": "https://assets.tcgdex.net/pt/sv/sv01/logo",
   "symbol": "https://assets.tcgdex.net/univ/sv/sv01/symbol",
-  "abbreviation": {
-    "official": "SVI"
-  }
+  "cards": [
+    {
+      "id": "sv01-001",
+      "localId": "001",
+      "name": "Pineco"
+    },
+    {
+      "id": "sv01-002",
+      "localId": "002",
+      "name": "Heracross"
+    }
+  ]
 }

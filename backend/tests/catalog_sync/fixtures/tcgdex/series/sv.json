@@ -1,35 +1,10 @@
 {
   "id": "sv",
-  "logo": "https://assets.tcgdex.net/pt/sv/sv01/logo",
   "name": "Escarlate e Violeta",
-  "firstSet": {
-    "cardCount": {
-      "official": 225,
-      "total": 225
-    },
-    "id": "svp",
-    "name": "SVP Black Star Promos"
-  },
-  "lastSet": {
-    "cardCount": {
-      "official": 86,
-      "total": 172
-    },
-    "id": "sv10.5b",
-    "name": "Raio Preto",
-    "symbol": "https://assets.tcgdex.net/univ/sv/sv10.5b/symbol"
-  },
-  "releaseDate": "2023-03-31",
   "sets": [
     {
-      "cardCount": {
-        "official": 198,
-        "total": 258
-      },
       "id": "sv01",
-      "logo": "https://assets.tcgdex.net/pt/sv/sv01/logo",
-      "name": "Escarlate e Violeta",
-      "symbol": "https://assets.tcgdex.net/univ/sv/sv01/symbol"
+      "name": "Escarlate e Violeta"
     }
   ]
 }
