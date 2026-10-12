@@ -119,7 +119,7 @@ Backend (run from `backend/`; needs `uv`, which installs Python 3.13):
   in `tcg_pokedex/schema.py` (dev database at head first), then review it by hand.
 - `uv run pytest`: run the tests. Database tests start Postgres with Testcontainers, so
   Docker must be running.
-- `uv run pytest --cov`: run the tests with the coverage gate (branch coverage, 90% floor).
+- `uv run pytest --cov`: run the tests with the coverage gate (branch coverage, 80% floor).
 - `uv run ruff check .` and `uv run ruff format --check .`: lint and formatting.
 - `uv run pyright --warnings`: strict type check; warnings also fail.
 

@@ -1,38 +1,3 @@
-<!--
-Sync Impact Report
-==================
-Version change: (unversioned template) → 1.0.0
-Bump rationale: Initial ratification — all placeholders replaced with project-specific governance.
-
-Modified principles (template slot → new title):
-  - [PRINCIPLE_1_NAME] → I. Test-Driven Development (NON-NEGOTIABLE)
-  - [PRINCIPLE_2_NAME] → II. DRY — Single Source of Knowledge
-  - [PRINCIPLE_3_NAME] → III. Ports & Adapters, Vertical Slices
-  - [PRINCIPLE_4_NAME] → IV. Own the Data, Isolate Providers
-  - [PRINCIPLE_5_NAME] → V. Owner-Scoped from Day One
-
-Added sections:
-  - VI. Test Strategy (new principle beyond the template's five)
-  - VII. Simplicity (YAGNI) (new principle beyond the template's five)
-  - Additional Constraints (was [SECTION_2_NAME])
-  - Development Workflow & Quality Gates (was [SECTION_3_NAME])
-  - Governance (filled with Spec Kit default rules)
-
-Removed sections: none
-
-Templates reviewed (not modified by this command; they read the constitution at runtime):
-  - .specify/templates/plan-template.md — Constitution Check / Complexity Tracking align ✅
-  - .specify/templates/spec-template.md — no conflict ✅
-  - .specify/templates/tasks-template.md — ⚠ CONFLICT: labels tests "OPTIONAL - only if
-    requested". Under Principle I tests are mandatory and must precede implementation;
-    the constitution overrides the template wording at /speckit-tasks time.
-
-Follow-up TODOs:
-  - Consider a project-level override of tasks-template.md that makes test tasks mandatory
-    (outside the scope of this command).
-  - Principle I's commit-pair gate needs a git repository; the project is not one yet.
--->
-
 # TCG Pokédex Constitution
 
 TCG Pokédex is a web application for tracking which Pokémon TCG cards the owner has or is
@@ -48,9 +13,10 @@ This applies to every change, with no exceptions beyond those listed here.
 
 - Every behavior change MUST start with a failing test and follow Red → Green → Refactor.
 - `tasks.md` MUST list each test task before the implementation task it covers.
+- A TDD cycle covers one major behaviour, not one file or one small step.
 - Each TDD cycle MUST be a commit pair: first a `test:` commit containing the failing test,
   then a `feat:` or `fix:` commit that makes it pass. Tests MUST NOT be committed after the
-  code they cover.
+  code they cover. Commits MUST NOT be split per file.
 - The only exemptions are pure configuration, generated code, and throwaway spikes. Spike
   code MUST be deleted and rewritten test-first before merge.
 - UI behavior MUST be tested. Visual styling is not unit-tested.
@@ -111,12 +77,17 @@ it from the start costs almost nothing.
 
 ### VI. Test Strategy
 
+- **Scope**: tests MUST cover the main behaviours of a feature: the happy path and the failure
+  paths that matter. They MUST NOT enumerate every edge case or spec scenario. Reaching the
+  coverage floor with main-behaviour tests is enough.
+- **Coverage**: backend branch coverage MUST be at least 80%.
 - **Unit**: all domain logic MUST have unit tests. They run fast, do no I/O, and make up the
   bulk of the suite.
 - **Port contract suites**: each port MUST have one shared contract suite, run against BOTH its
   in-memory fake and its real adapter.
-- **Provider adapters**: MUST be tested against recorded fixtures. An optional, separate
-  live-check job MAY detect provider API drift; it is not part of the regular suite.
+- **Provider adapters**: MUST be tested against recorded fixtures, kept to a few payloads
+  trimmed to the fields the adapter reads. An optional, separate live-check job MAY detect
+  provider API drift; it is not part of the regular suite.
 - **Persistence adapters**: MUST have integration tests against the real database engine,
   never a mock of it.
 - **End-to-end**: each P1 user story MUST have at least one happy-path test through the real UI,
@@ -124,7 +95,8 @@ it from the start costs almost nothing.
 - Tests MUST NOT call the real network. Time-dependent logic MUST use an injected clock.
 
 **Rationale**: Contract suites prove that the fakes behave like the real adapters, which makes
-it safe to rely on fast fake-backed tests. Role-based selectors also check accessibility.
+it safe to rely on fast fake-backed tests. Role-based selectors also check accessibility. One PR
+per ticket exists so a human can review it; a suite that tests every detail defeats that.
 
 ### VII. Simplicity (YAGNI)
 
@@ -151,7 +123,8 @@ come.
 
 The following gates are enforced in CI and block merging:
 
-1. All test levels pass. A skipped test MUST reference a linked issue.
+1. All test levels pass, with backend branch coverage of at least 80%. A skipped test MUST
+   reference a linked issue.
 2. The commit history shows red-before-green ordering for each TDD cycle (Principle I).
 3. Lint, formatting, and type/static checks pass with zero warnings. Every suppression MUST
    carry an inline justification.
@@ -177,4 +150,4 @@ The following gates are enforced in CI and block merging:
 - Runtime development guidance (e.g. the agent guidance file) MUST stay consistent with this
   constitution and MUST NOT restate or override it.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-04
+**Version**: 1.1.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-12
