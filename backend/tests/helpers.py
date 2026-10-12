@@ -24,6 +24,7 @@ PT_API = "https://api.tcgdex.net/v2/pt/"
 EN_API = "https://api.tcgdex.net/v2/en/cards"
 PIXEL = (FIXTURES / "images" / "pixel.webp").read_bytes()
 SEEDED_AT = datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
+OTHER_OWNER_ID = UUID("00000000-0000-4000-8000-000000000002")
 
 
 @dataclass(frozen=True)

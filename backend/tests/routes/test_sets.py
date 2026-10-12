@@ -3,7 +3,6 @@
 from collections.abc import Iterator, Mapping, Sequence
 from datetime import date
 from pathlib import Path
-from uuid import UUID
 
 import httpx2
 import pytest
@@ -27,6 +26,7 @@ from tcg_pokedex.tables import (
 )
 from tcg_pokedex.tcgdex import SOURCE
 from tests.helpers import (
+    OTHER_OWNER_ID,
     SEEDED_AT,
     FixtureRoutes,
     card_row,
@@ -38,7 +38,6 @@ from tests.helpers import (
 
 PT_001 = "https://assets.tcgdex.net/pt/sv/sv01/001"
 EN_002 = "https://assets.tcgdex.net/en/swsh/swshp/SWSH032"
-OTHER_OWNER_ID = UUID("00000000-0000-4000-8000-000000000002")
 PROVENANCE = {"source": SOURCE, "fetched_at": SEEDED_AT}
 N, R, H = Variant.NORMAL, Variant.REVERSE, Variant.HOLO
 
