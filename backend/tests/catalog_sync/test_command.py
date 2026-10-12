@@ -16,6 +16,7 @@ from tcg_pokedex.catalog_sync.adapters.postgres import PostgresCatalogRepository
 from tcg_pokedex.catalog_sync.command import run_catalog_sync
 from tcg_pokedex.catalog_sync.domain import (
     CardCounts,
+    Failure,
     KindCounts,
     RunStatus,
     SetCounts,
@@ -28,6 +29,8 @@ from tcg_pokedex.migrations import upgrade_to_head
 from tests.catalog_sync.tcgdex_fixtures import (
     HAPPY,
     HAPPY_CARD_IDS,
+    INDEX_DOWN,
+    WITH_FAILURES,
     FixtureRoutes,
     Raise,
     Reply,
@@ -225,3 +228,98 @@ def test_a_second_run_changes_nothing_but_the_fetch_time(
         runs = connection.execute(select(tables.sync_runs)).mappings().all()
     assert len(runs) == 2
     assert all(row["finished_at"] is not None for row in runs)
+
+
+def test_failures_make_a_partial_run_that_exits_1(
+    capsys: pytest.CaptureFixture[str], database_url: str, engine: Engine
+) -> None:
+    outcome = sync(capsys, database_url, WITH_FAILURES)
+
+    assert outcome.exit_code == 1
+    run = outcome.run
+    assert run.status is RunStatus.PARTIAL
+    assert run.error is None
+    assert run.result is not None
+    assert run.result.failures == (
+        Failure(kind="set", provider_id="sv02", reason="HTTP 500 after 3 attempts"),
+        Failure(
+            kind="card",
+            provider_id="fail01-001",
+            reason="invalid payload: name: Field required",
+        ),
+        Failure(kind="card", provider_id="fail01-002", reason="no variants"),
+        Failure(kind="card", provider_id="fail01-003", reason="HTTP 404"),
+    )
+    assert run.result.counts.sets == SetCounts(
+        fetched=5, created=5, updated=0, unchanged=0, skipped=1, failed=1
+    )
+    assert run.result.counts.cards == CardCounts(
+        fetched=15, created=15, updated=0, unchanged=0, failed=3
+    )
+    assert PostgresCatalogRepository(engine).get_run(run.id) == run
+    cards = rows(engine, tables.cards)
+    assert set(cards) == {*HAPPY_CARD_IDS, "fail01-004"}
+    assert set(rows(engine, tables.sets)) == {
+        "xy0",
+        "swshp",
+        "swsh4.5",
+        "sv01",
+        "fail01",
+    }
+    failure_lines = [line for line in outcome.log if line["event"] == "sync.failure"]
+    assert len(failure_lines) == 4
+    assert {line["provider_id"] for line in failure_lines} == {
+        "sv02",
+        "fail01-001",
+        "fail01-002",
+        "fail01-003",
+    }
+
+
+def test_an_unavailable_index_fails_the_run_writes_nothing_and_exits_2(
+    capsys: pytest.CaptureFixture[str], database_url: str, engine: Engine
+) -> None:
+    outcome = sync(capsys, database_url, INDEX_DOWN)
+
+    assert outcome.exit_code == 2
+    run = outcome.run
+    assert run.status is RunStatus.FAILED
+    assert run.error == "HTTP 500 after 3 attempts"
+    assert run.result is not None
+    assert run.result.counts.cards == CardCounts(
+        fetched=0, created=0, updated=0, unchanged=0, failed=0
+    )
+    for table in (tables.series, tables.sets, tables.cards):
+        assert rows(engine, table) == {}
+    assert PostgresCatalogRepository(engine).get_run(run.id) == run
+    assert outcome.routes.paths == ["series"] * 3
+
+
+def test_an_unreachable_store_exits_2_without_contacting_the_provider(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    outcome = sync(capsys, "postgresql+psycopg://x:x@127.0.0.1:1/x")
+
+    assert outcome.exit_code == 2
+    assert outcome.stdout == ""
+    assert [line["event"] for line in outcome.log] == ["sync.run.error"]
+    assert outcome.log[0]["error"]
+    assert outcome.routes.requests == []
+
+
+def test_a_run_record_that_cannot_be_closed_exits_2(
+    capsys: pytest.CaptureFixture[str],
+    database_url: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def broken_finish_run(_self: PostgresCatalogRepository, _run: SyncRun) -> None:
+        raise RuntimeError("store went away")
+
+    monkeypatch.setattr(PostgresCatalogRepository, "finish_run", broken_finish_run)
+
+    outcome = sync(capsys, database_url)
+
+    assert outcome.exit_code == 2
+    assert outcome.stdout == ""
+    assert outcome.log[-1]["event"] == "sync.run.error"
+    assert outcome.log[-1]["error"] == "store went away"
