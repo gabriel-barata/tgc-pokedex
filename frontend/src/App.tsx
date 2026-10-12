@@ -1,9 +1,9 @@
 import { Navigate, Route, Routes } from "react-router";
-import { SetPage } from "./sets/SetPage.tsx";
-import { SetsPage } from "./sets/SetsPage.tsx";
-import { AppShell } from "./shell/AppShell.tsx";
-import { NotFoundPage } from "./shell/NotFoundPage.tsx";
-import { StatusPage } from "./status/StatusPage.tsx";
+import { SetPage } from "@/pages/SetPage.tsx";
+import { SetsPage } from "@/pages/SetsPage.tsx";
+import { AppShell } from "@/components/layout/AppShell.tsx";
+import { NotFoundPage } from "@/pages/NotFoundPage.tsx";
+import { StatusPage } from "@/pages/StatusPage.tsx";
 
 export function App() {
   return (

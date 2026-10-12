@@ -1,14 +1,14 @@
 import { type ReactNode, type Ref, useRef } from "react";
-import { PageTitle } from "../shell/PageTitle.tsx";
-import { shellStrings } from "../shell/strings.ts";
-import { Button } from "../ui/button.tsx";
-import { Bubble } from "../ui/motifs/Bubble.tsx";
-import { Crest } from "../ui/motifs/Crest.tsx";
-import { Ruff } from "../ui/motifs/Ruff.tsx";
-import { SetCover } from "./SetCover.tsx";
-import { SetRow } from "./SetRow.tsx";
-import { setsStrings } from "./strings.ts";
-import { type SeriesEntry, useSets } from "./use-sets.ts";
+import { PageTitle } from "@/components/layout/PageTitle.tsx";
+import { layoutStrings } from "@/strings/layout.ts";
+import { Button } from "@/ui/button.tsx";
+import { Bubble } from "@/ui/motifs/Bubble.tsx";
+import { Crest } from "@/ui/motifs/Crest.tsx";
+import { Ruff } from "@/ui/motifs/Ruff.tsx";
+import { SetCover } from "@/components/sets/SetCover.tsx";
+import { SetRow } from "@/components/sets/SetRow.tsx";
+import { setsStrings } from "@/strings/sets.ts";
+import { type SeriesEntry, useSets } from "@/api/sets.ts";
 
 const trackedHeadingId = "acompanhando";
 const allHeadingId = "todas-as-colecoes";
@@ -17,7 +17,7 @@ export function SetsPage() {
   const { data, status, refetch } = useSets();
   return (
     <>
-      <PageTitle>{shellStrings.collections}</PageTitle>
+      <PageTitle>{layoutStrings.collections}</PageTitle>
       {status === "pending" && <p role="status">{setsStrings.loading}</p>}
       {status === "error" && (
         <div className="flex flex-col items-start gap-3">

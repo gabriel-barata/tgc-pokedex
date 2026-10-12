@@ -2,11 +2,11 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { components } from "../api-schema.gen.ts";
-import { App } from "../App.tsx";
-import { server } from "../test-server.ts";
-import { renderWithProviders } from "../test-utils.tsx";
-import { setsStrings } from "./strings.ts";
+import type { components } from "@/api/schema.gen.ts";
+import { App } from "@/App.tsx";
+import { server } from "@/testing/server.ts";
+import { renderWithProviders } from "@/testing/render.tsx";
+import { setsStrings } from "@/strings/sets.ts";
 
 type SetEntry = components["schemas"]["SetEntry"];
 

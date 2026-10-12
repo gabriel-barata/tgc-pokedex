@@ -1,5 +1,5 @@
 import type { Locator, Page } from "@playwright/test";
-import { setsStrings } from "../src/sets/strings.ts";
+import { setsStrings } from "../src/strings/sets.ts";
 import { expect, test } from "./test.ts";
 
 async function pressUntilFocused(page: Page, target: Locator, key: "Tab" | "Shift+Tab") {

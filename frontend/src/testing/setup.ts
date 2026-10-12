@@ -1,6 +1,6 @@
 import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach } from "vitest";
-import { server } from "./test-server.ts";
+import { server } from "@/testing/server.ts";
 
 server.listen({ onUnhandledRequest: "error" });
 

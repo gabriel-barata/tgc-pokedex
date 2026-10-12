@@ -1,8 +1,8 @@
 import { Check, ChevronDown, CircleAlert, CircleX, LoaderCircle } from "lucide-react";
 import { useId, useState } from "react";
-import { Button } from "../ui/button.tsx";
-import { statusStrings } from "./strings.ts";
-import type { SyncRunEntry } from "./use-sync.ts";
+import { Button } from "@/ui/button.tsx";
+import { statusStrings } from "@/strings/status.ts";
+import type { SyncRunEntry } from "@/api/sync.ts";
 
 const startedFormat = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 

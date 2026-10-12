@@ -1,11 +1,11 @@
 import { LoaderCircle, RefreshCw } from "lucide-react";
-import { PageTitle } from "../shell/PageTitle.tsx";
-import { shellStrings } from "../shell/strings.ts";
-import { Button } from "../ui/button.tsx";
-import { Bubble } from "../ui/motifs/Bubble.tsx";
-import { RunRow } from "./RunRow.tsx";
-import { statusStrings } from "./strings.ts";
-import { useSyncNow, useSyncStatus } from "./use-sync.ts";
+import { PageTitle } from "@/components/layout/PageTitle.tsx";
+import { layoutStrings } from "@/strings/layout.ts";
+import { Button } from "@/ui/button.tsx";
+import { Bubble } from "@/ui/motifs/Bubble.tsx";
+import { RunRow } from "@/components/status/RunRow.tsx";
+import { statusStrings } from "@/strings/status.ts";
+import { useSyncNow, useSyncStatus } from "@/api/sync.ts";
 
 const runsHeadingId = "sincronizacoes";
 
@@ -13,7 +13,7 @@ export function StatusPage() {
   const { data, status, refetch } = useSyncStatus();
   return (
     <>
-      <PageTitle>{shellStrings.status}</PageTitle>
+      <PageTitle>{layoutStrings.status}</PageTitle>
       {status === "pending" && <p role="status">{statusStrings.loading}</p>}
       {status === "error" && (
         <div className="flex flex-col items-start gap-3">

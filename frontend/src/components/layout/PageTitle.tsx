@@ -1,4 +1,4 @@
-import { Ruff } from "../ui/motifs/Ruff.tsx";
+import { Ruff } from "@/ui/motifs/Ruff.tsx";
 
 export function PageTitle({ children }: { children: string }) {
   return (

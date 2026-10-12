@@ -1,7 +1,7 @@
 import { Search } from "lucide-react";
 import { useEffect, useId, useRef } from "react";
-import { Input } from "../ui/input.tsx";
-import { shellStrings } from "./strings.ts";
+import { Input } from "@/ui/input.tsx";
+import { layoutStrings } from "@/strings/layout.ts";
 
 export function CardSearch({ id, open }: { id: string; open: boolean }) {
   const inputId = useId();
@@ -22,7 +22,7 @@ export function CardSearch({ id, open }: { id: string; open: boolean }) {
       }}
     >
       <label htmlFor={inputId} className="sr-only">
-        {shellStrings.searchLabel}
+        {layoutStrings.searchLabel}
       </label>
       <Search
         aria-hidden="true"
@@ -32,7 +32,7 @@ export function CardSearch({ id, open }: { id: string; open: boolean }) {
         ref={input}
         id={inputId}
         type="search"
-        placeholder={shellStrings.searchPlaceholder}
+        placeholder={layoutStrings.searchPlaceholder}
         className="pl-11"
       />
     </form>

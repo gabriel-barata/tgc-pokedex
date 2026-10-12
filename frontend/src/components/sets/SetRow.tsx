@@ -1,7 +1,7 @@
 import { Link } from "react-router";
-import { setsStrings } from "./strings.ts";
-import { TrackButton } from "./TrackButton.tsx";
-import type { SetEntry } from "./use-sets.ts";
+import { setsStrings } from "@/strings/sets.ts";
+import { TrackButton } from "@/components/sets/TrackButton.tsx";
+import type { SetEntry } from "@/api/sets.ts";
 
 export function SetRow({ set }: { set: SetEntry }) {
   const year = set.release_date.slice(0, 4);

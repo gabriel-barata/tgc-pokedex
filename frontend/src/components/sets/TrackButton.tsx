@@ -1,7 +1,7 @@
 import { Check, Plus } from "lucide-react";
-import { Button } from "../ui/button.tsx";
-import { setsStrings } from "./strings.ts";
-import { type SetEntry, useTrackSet } from "./use-sets.ts";
+import { Button } from "@/ui/button.tsx";
+import { setsStrings } from "@/strings/sets.ts";
+import { type SetEntry, useTrackSet } from "@/api/sets.ts";
 
 export function TrackButton({ set }: { set: SetEntry }) {
   const { mutate, isPending, isError, variables } = useTrackSet(set.id);

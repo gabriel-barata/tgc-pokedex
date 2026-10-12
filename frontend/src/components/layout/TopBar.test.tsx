@@ -2,17 +2,17 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
-import { App } from "../App.tsx";
-import { server } from "../test-server.ts";
-import { renderWithProviders } from "../test-utils.tsx";
-import { shellStrings } from "./strings.ts";
+import { App } from "@/App.tsx";
+import { server } from "@/testing/server.ts";
+import { renderWithProviders } from "@/testing/render.tsx";
+import { layoutStrings } from "@/strings/layout.ts";
 
 function menuButton() {
-  return screen.getByRole("button", { name: shellStrings.menu });
+  return screen.getByRole("button", { name: layoutStrings.menu });
 }
 
 function searchButton() {
-  return screen.getByRole("button", { name: shellStrings.openSearch });
+  return screen.getByRole("button", { name: layoutStrings.openSearch });
 }
 
 beforeEach(() => {
@@ -28,7 +28,7 @@ describe("top bar menu on narrow screens", () => {
     await user.click(menuButton());
 
     expect(menuButton().getAttribute("aria-expanded")).toBe("true");
-    const nav = screen.getByRole("navigation", { name: shellStrings.mainNav });
+    const nav = screen.getByRole("navigation", { name: layoutStrings.mainNav });
     expect(menuButton().getAttribute("aria-controls")).toBe(nav.id);
 
     await user.tab();
@@ -43,10 +43,10 @@ describe("top bar menu on narrow screens", () => {
     renderWithProviders(<App />, { route: "/colecoes" });
 
     await user.click(menuButton());
-    const nav = screen.getByRole("navigation", { name: shellStrings.mainNav });
-    await user.click(within(nav).getByRole("link", { name: shellStrings.status }));
+    const nav = screen.getByRole("navigation", { name: layoutStrings.mainNav });
+    await user.click(within(nav).getByRole("link", { name: layoutStrings.status }));
 
-    expect(screen.getByRole("heading", { level: 1, name: shellStrings.status })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: layoutStrings.status })).toBeTruthy();
     expect(menuButton().getAttribute("aria-expanded")).toBe("false");
   });
 });
@@ -60,7 +60,7 @@ describe("top bar search on phones", () => {
     await user.click(searchButton());
 
     expect(searchButton().getAttribute("aria-expanded")).toBe("true");
-    const field = screen.getByRole("searchbox", { name: shellStrings.searchLabel });
+    const field = screen.getByRole("searchbox", { name: layoutStrings.searchLabel });
     expect(field.matches(":focus")).toBe(true);
 
     await user.keyboard("{Escape}");

@@ -1,6 +1,6 @@
 dist
 pnpm-lock.yaml
-src/api-schema.gen.ts
+src/api/schema.gen.ts
 openapi.json
 test-results
 playwright-report

@@ -10,7 +10,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default defineConfig([
-  globalIgnores(["dist", "src/api-schema.gen.ts"]),
+  globalIgnores(["dist", "src/api/schema.gen.ts"]),
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
@@ -29,7 +29,7 @@ export default defineConfig([
   },
   {
     files: ["src/**/*.tsx"],
-    ignores: ["src/**/*.test.tsx", "src/test-utils.tsx"],
+    ignores: ["src/**/*.test.tsx", "src/testing/**"],
     extends: [reactRefresh.configs.vite],
   },
   {

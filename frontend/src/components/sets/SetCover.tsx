@@ -1,7 +1,7 @@
 import { Link } from "react-router";
-import { Ruff } from "../ui/motifs/Ruff.tsx";
-import { setsStrings } from "./strings.ts";
-import type { SetEntry } from "./use-sets.ts";
+import { Ruff } from "@/ui/motifs/Ruff.tsx";
+import { setsStrings } from "@/strings/sets.ts";
+import type { SetEntry } from "@/api/sets.ts";
 
 export function SetCover({ set, seriesName }: { set: SetEntry; seriesName: string }) {
   return (
