@@ -47,6 +47,17 @@ class SetTracking(BaseModel):
     downloading: bool
 
 
+class SetCompletion(BaseModel):
+    """How many of a set's cards the owner has, and how many only in Normal."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    owned: int = Field(ge=0)
+    so_normal: int = Field(ge=0)
+    total: int = Field(ge=0)
+    complete: bool
+
+
 class SetEntry(BaseModel):
     """A set as one owner sees it. `has_logo` and `has_symbol` mean cached."""
 
@@ -60,6 +71,7 @@ class SetEntry(BaseModel):
     has_symbol: bool
     tracked: bool
     downloading: bool
+    completion: SetCompletion
 
 
 class SeriesEntry(BaseModel):
@@ -96,6 +108,7 @@ class SetOwnership(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     set_id: str
+    completion: SetCompletion
     cards: list[CardOwnership]
 
 

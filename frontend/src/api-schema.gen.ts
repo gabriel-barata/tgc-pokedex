@@ -244,6 +244,20 @@ export interface components {
             sets: components["schemas"]["SetEntry"][];
         };
         /**
+         * SetCompletion
+         * @description How many of a set's cards the owner has, and how many only in Normal.
+         */
+        SetCompletion: {
+            /** Owned */
+            owned: number;
+            /** So Normal */
+            so_normal: number;
+            /** Total */
+            total: number;
+            /** Complete */
+            complete: boolean;
+        };
+        /**
          * SetEntry
          * @description A set as one owner sees it. `has_logo` and `has_symbol` mean cached.
          */
@@ -267,6 +281,7 @@ export interface components {
             tracked: boolean;
             /** Downloading */
             downloading: boolean;
+            completion: components["schemas"]["SetCompletion"];
         };
         /**
          * SetOwnership
@@ -275,6 +290,7 @@ export interface components {
         SetOwnership: {
             /** Set Id */
             set_id: string;
+            completion: components["schemas"]["SetCompletion"];
             /** Cards */
             cards: components["schemas"]["CardOwnership"][];
         };

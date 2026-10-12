@@ -622,6 +622,39 @@
         ],
         "title": "SeriesEntry"
       },
+      "SetCompletion": {
+        "properties": {
+          "owned": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Owned"
+          },
+          "so_normal": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "So Normal"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total"
+          },
+          "complete": {
+            "type": "boolean",
+            "title": "Complete"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "owned",
+          "so_normal",
+          "total",
+          "complete"
+        ],
+        "title": "SetCompletion",
+        "description": "How many of a set's cards the owner has, and how many only in Normal."
+      },
       "SetEntry": {
         "properties": {
           "id": {
@@ -657,6 +690,9 @@
           "downloading": {
             "type": "boolean",
             "title": "Downloading"
+          },
+          "completion": {
+            "$ref": "#/components/schemas/SetCompletion"
           }
         },
         "additionalProperties": false,
@@ -669,7 +705,8 @@
           "has_logo",
           "has_symbol",
           "tracked",
-          "downloading"
+          "downloading",
+          "completion"
         ],
         "title": "SetEntry",
         "description": "A set as one owner sees it. `has_logo` and `has_symbol` mean cached."
@@ -679,6 +716,9 @@
           "set_id": {
             "type": "string",
             "title": "Set Id"
+          },
+          "completion": {
+            "$ref": "#/components/schemas/SetCompletion"
           },
           "cards": {
             "items": {
@@ -692,6 +732,7 @@
         "type": "object",
         "required": [
           "set_id",
+          "completion",
           "cards"
         ],
         "title": "SetOwnership",
