@@ -52,3 +52,30 @@ test("the display and text fonts load from the app itself", async ({ page }) => 
 
   expect(loadedFamilies).toEqual(expect.arrayContaining(["Fredoka", "Nunito"]));
 });
+
+test.describe("on a phone", () => {
+  test.use({ viewport: { width: 375, height: 800 } });
+
+  test("the menu button reveals the navigation links", async ({ page }) => {
+    await page.goto("/colecoes");
+    const statusLink = page.getByRole("link", { name: shellStrings.status });
+    await expect(statusLink).toBeHidden();
+
+    await page.getByRole("button", { name: shellStrings.menu }).click();
+    await statusLink.click();
+
+    await expect(page).toHaveURL("/status");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(shellStrings.status);
+    await expect(statusLink).toBeHidden();
+  });
+
+  test("the search button reveals the search field", async ({ page }) => {
+    await page.goto("/");
+    const search = page.getByRole("searchbox", { name: shellStrings.searchLabel });
+    await expect(search).toBeHidden();
+
+    await page.getByRole("button", { name: shellStrings.openSearch }).click();
+
+    await expect(search).toBeFocused();
+  });
+});
