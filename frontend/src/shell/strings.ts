@@ -1,0 +1,16 @@
+export const shellStrings = {
+  skipToContent: "Pular para o conteúdo",
+  home: "TCG Pokédex, início",
+  wordmarkAccent: "TCG",
+  wordmarkRest: "Pokédex",
+  mainNav: "Principal",
+  menu: "Menu",
+  openSearch: "Buscar",
+  searchLabel: "Buscar carta",
+  searchPlaceholder: "Buscar carta…",
+  collections: "Coleções",
+  status: "Status",
+  comingSoon: "Em breve.",
+  notFound: "Página não encontrada",
+  backHome: "Voltar ao início",
+} as const;
