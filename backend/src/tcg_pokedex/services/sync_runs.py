@@ -1,16 +1,17 @@
-"""What every sync shares: the run record, its storage, the JSON log and exit codes."""
+"""What every sync shares: the run record, its storage, the one-sync-at-a-time lock,
+the JSON log and exit codes."""
 
 import json
 import logging
 import sys
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
-from sqlalchemy import Engine, insert, select, update
+from sqlalchemy import Connection, Engine, func, insert, select, text, update
 
 from tcg_pokedex.schemas import RunStatus, SyncKind
 from tcg_pokedex.tables import sync_runs
@@ -19,10 +20,19 @@ from tcg_pokedex.tcgdex import SOURCE
 MAX_FAILURES = 100
 """A run's result keeps at most this many failures; its counts stay exact."""
 
+SYNC_LOCK = 0x74636773
+"""The Postgres advisory lock key every sync takes."""
+
+INTERRUPTED = "interrupted: the process running this sync stopped"
+
 logger = logging.getLogger("tcg_pokedex")
 
 
 EXIT_CODES = {RunStatus.SUCCEEDED: 0, RunStatus.PARTIAL: 1, RunStatus.FAILED: 2}
+
+
+class SyncBusyError(Exception):
+    """Another sync holds the sync lock."""
 
 
 def run_status(*, aborted: bool, failed: int) -> RunStatus:
@@ -128,6 +138,60 @@ def _row[R: BaseModel](run: SyncRun[R]) -> dict[str, Any]:
     }
 
 
+def claim_syncs(engine: Engine) -> Connection | None:
+    """Take the sync lock alone, or return None while any sync or set download holds it.
+
+    The lock is a session-level Postgres advisory lock on a connection of its own, so
+    it ends with that connection or its process. Holding it alone means no sync is
+    alive, so runs still marked running are closed as interrupted.
+    """
+    connection = engine.connect()
+    try:
+        if not connection.scalar(select(func.pg_try_advisory_lock(SYNC_LOCK))):
+            connection.close()
+            return None
+        connection.execute(
+            update(sync_runs)
+            .where(sync_runs.c.status == RunStatus.RUNNING)
+            .values(status=RunStatus.FAILED, error=INTERRUPTED)
+        )
+        connection.commit()
+    except BaseException:
+        release_syncs(connection)
+        raise
+    return connection
+
+
+def join_syncs(engine: Engine) -> Connection:
+    """Take the sync lock shared with other set downloads, after any running sync."""
+    connection = engine.connect()
+    try:
+        connection.execute(select(func.pg_advisory_lock_shared(SYNC_LOCK)))
+        connection.commit()
+    except BaseException:
+        release_syncs(connection)
+        raise
+    return connection
+
+
+def release_syncs(connection: Connection) -> None:
+    """Drop the lock's connection, which ends its session and the lock with it."""
+    connection.invalidate()
+    connection.close()
+
+
+def syncs_running(connection: Connection) -> bool:
+    """Whether any sync or set download holds the sync lock."""
+    held = text(
+        "SELECT EXISTS (SELECT FROM pg_locks WHERE locktype = 'advisory'"
+        " AND database = (SELECT oid FROM pg_database"
+        " WHERE datname = current_database())"
+        " AND classid = 0 AND objid = CAST(:key AS oid) AND objsubid = 1"
+        " AND granted)"
+    )
+    return bool(connection.scalar(held, {"key": SYNC_LOCK}))
+
+
 def log(event: str, **fields: object) -> None:
     logger.info(event, extra={"fields": fields})
 
@@ -165,17 +229,19 @@ def json_lines_on_stderr() -> Generator[None]:
         logger.propagate = previous_propagate
 
 
-def report_run[R: BaseModel](sync: Callable[[], SyncRun[R]]) -> int:
-    """Run a sync, print the closed run as one JSON object, and return its exit code.
+def report_runs(sync: Callable[[], Sequence[SyncRun[Any]]]) -> int:
+    """Run syncs, print each closed run as a JSON line, and return the worst exit code.
 
-    The app's log goes only to stderr, as JSON lines. When the run record cannot be
-    created or closed, it prints nothing, logs `sync.run.error` and returns 2.
+    The app's log goes only to stderr, as JSON lines. When another sync holds the lock,
+    or a run record cannot be created or closed, it prints nothing, logs
+    `sync.run.error` and returns 2.
     """
     with json_lines_on_stderr():
         try:
-            run = sync()
+            runs = sync()
         except Exception as error:
             logger.error("sync.run.error", extra={"fields": {"error": str(error)}})
             return EXIT_CODES[RunStatus.FAILED]
-    print(run.model_dump_json())
-    return EXIT_CODES[run.status]
+    for run in runs:
+        print(run.model_dump_json())
+    return max(EXIT_CODES[run.status] for run in runs)

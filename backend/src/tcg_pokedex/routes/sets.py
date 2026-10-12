@@ -24,6 +24,7 @@ from tcg_pokedex.schemas import (
     VariantQuantity,
 )
 from tcg_pokedex.services.image_sync import sync_images
+from tcg_pokedex.services.sync_runs import join_syncs, release_syncs
 from tcg_pokedex.tables import (
     HOUSEHOLD_OWNER_ID,
     card_images,
@@ -337,9 +338,16 @@ def _tracking(
 
 
 def _download_set(request: Request, set_id: str) -> None:
+    """Download the set's images once no full sync runs; set downloads run together."""
     state = request.app.state
     try:
-        with Tcgdex(transport=state.tcgdex_transport) as tcgdex:
-            sync_images(state.engine, tcgdex, state.settings.image_dir, set_id=set_id)
+        lock = join_syncs(state.engine)
+        try:
+            with Tcgdex(transport=state.tcgdex_transport) as tcgdex:
+                sync_images(
+                    state.engine, tcgdex, state.settings.image_dir, set_id=set_id
+                )
+        finally:
+            release_syncs(lock)
     finally:
         state.registry.finish(set_id)
