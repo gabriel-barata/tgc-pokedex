@@ -21,11 +21,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Engine, exists, select
 from sqlalchemy.dialects import postgresql
 
-from tcg_pokedex.schemas import ArtworkKind, CardSize
+from tcg_pokedex.schemas import ArtworkKind, CardSize, RunStatus, SyncKind
 from tcg_pokedex.services.sync_runs import (
     MAX_FAILURES,
-    RunStatus,
-    SyncKind,
     SyncRun,
     close_run,
     finish_run,

@@ -29,6 +29,18 @@ class Variant(StrEnum):
     W_PROMO = "w_promo"
 
 
+class SyncKind(StrEnum):
+    CATALOG = "catalog"
+    IMAGES = "images"
+
+
+class RunStatus(StrEnum):
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    PARTIAL = "partial"
+    FAILED = "failed"
+
+
 class HealthStatus(BaseModel):
     status: Literal["ok", "degraded"]
     database: Literal["ok", "unavailable"]

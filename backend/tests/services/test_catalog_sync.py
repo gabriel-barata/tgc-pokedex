@@ -13,6 +13,7 @@ from sqlalchemy import Engine, select
 
 from tcg_pokedex.cli import run_sync
 from tcg_pokedex.config import Settings
+from tcg_pokedex.schemas import RunStatus
 from tcg_pokedex.services.catalog_sync import (
     CardCounts,
     Failure,
@@ -21,7 +22,7 @@ from tcg_pokedex.services.catalog_sync import (
     SetCounts,
     SyncResult,
 )
-from tcg_pokedex.services.sync_runs import RunStatus, SyncRun, get_run
+from tcg_pokedex.services.sync_runs import SyncRun, get_run
 from tcg_pokedex.tables import cards, sets
 from tests.helpers import (
     FIXTURES,

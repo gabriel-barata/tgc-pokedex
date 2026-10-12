@@ -6,13 +6,13 @@ import sys
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
-from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import Engine, insert, select, update
 
+from tcg_pokedex.schemas import RunStatus, SyncKind
 from tcg_pokedex.tables import sync_runs
 from tcg_pokedex.tcgdex import SOURCE
 
@@ -20,18 +20,6 @@ MAX_FAILURES = 100
 """A run's result keeps at most this many failures; its counts stay exact."""
 
 logger = logging.getLogger("tcg_pokedex")
-
-
-class SyncKind(StrEnum):
-    CATALOG = "catalog"
-    IMAGES = "images"
-
-
-class RunStatus(StrEnum):
-    RUNNING = "running"
-    SUCCEEDED = "succeeded"
-    PARTIAL = "partial"
-    FAILED = "failed"
 
 
 EXIT_CODES = {RunStatus.SUCCEEDED: 0, RunStatus.PARTIAL: 1, RunStatus.FAILED: 2}
