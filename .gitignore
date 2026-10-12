@@ -200,3 +200,5 @@ playwright/.auth/
 .claude/settings.local.json
 
 .vscode
+
+backend/data/
