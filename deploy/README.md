@@ -7,7 +7,7 @@ new digest, it pulls the image and recreates the app container.
 
 | Repo path | Server path | What it is |
 | --- | --- | --- |
-| `compose.yml`, `.env.example` | `/srv/docker/tcg-pokedex/` | The app and Postgres 17 with a named volume. |
+| `compose.yml`, `.env.example` | `/srv/docker/tcg-pokedex/` | The app with its `images` volume, and Postgres 17 with its own. |
 | `wud/compose.yml`, `wud/.env.example` | `/srv/docker/wud/` | WUD, shared by the whole homelab. |
 
 Secrets live only in the `.env` files on the server (`chmod 600`), never in the repository.
@@ -64,6 +64,20 @@ docker exec pihole pihole-FTL --config misc.dnsmasq_lines '["address=/mistoquent
 - Then add the two proxy hosts above in NPM (http://192.168.1.201:81), scheme `http`.
 
 The GHCR package is public, so neither WUD nor Docker needs registry credentials.
+
+## Syncing data
+
+The app keeps two named volumes: `postgres-data` (the database) and `images` (card images,
+set logos and symbols, mounted at `/data/images`). Both survive container updates. Back up
+the database; the `images` volume can be lost, because the next image sync downloads it again.
+
+```sh
+cd /srv/docker/tcg-pokedex
+docker compose exec app tcg sync catalog   # the TCGdex pt catalog
+docker compose exec app tcg sync images    # tracked sets' card images, every set's artwork
+```
+
+Each prints its run as JSON and exits `0` (succeeded), `1` (partial) or `2` (failed).
 
 ## Which version is running
 
