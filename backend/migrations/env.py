@@ -10,7 +10,7 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 from tcg_pokedex.config import Settings
-from tcg_pokedex.schema import metadata
+from tcg_pokedex.tables import metadata
 
 config = context.config
 if config.config_file_name is not None:

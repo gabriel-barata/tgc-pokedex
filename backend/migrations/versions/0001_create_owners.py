@@ -10,7 +10,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-from tcg_pokedex.owners.domain import HOUSEHOLD_OWNER_ID, HOUSEHOLD_OWNER_NAME
+from tcg_pokedex.tables import HOUSEHOLD_OWNER_ID, HOUSEHOLD_OWNER_NAME
 
 revision: str = "0001"
 down_revision: str | Sequence[str] | None = None
