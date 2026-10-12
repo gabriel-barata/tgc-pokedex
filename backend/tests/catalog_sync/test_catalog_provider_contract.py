@@ -16,7 +16,9 @@ from tcg_pokedex.catalog_sync.ports import CatalogProvider, ProviderUnavailableE
 from tests.catalog_sync.builders import make_card, make_listing, make_series, make_set
 from tests.catalog_sync.tcgdex_fixtures import (
     HAPPY,
+    INDEX_DOWN,
     SV01_CARD_IDS,
+    WITH_FAILURES,
     FixtureRoutes,
     Raise,
     Reply,
@@ -103,19 +105,30 @@ def corpus_tcgdex(request: pytest.FixtureRequest) -> CatalogProvider:
     return tcgdex_over(HAPPY, request)
 
 
+def corpus_tcgdex_with_failures(request: pytest.FixtureRequest) -> CatalogProvider:
+    return tcgdex_over(WITH_FAILURES, request)
+
+
+def index_down_tcgdex(request: pytest.FixtureRequest) -> CatalogProvider:
+    return tcgdex_over(INDEX_DOWN, request)
+
+
 @pytest.fixture(params=[corpus_fake, corpus_tcgdex], ids=["fake", "tcgdex"])
 def provider(request: pytest.FixtureRequest) -> CatalogProvider:
     factory: Callable[[pytest.FixtureRequest], CatalogProvider] = request.param
     return factory(request)
 
 
-@pytest.fixture(params=[corpus_fake_with_failures], ids=["fake"])
+@pytest.fixture(
+    params=[corpus_fake_with_failures, corpus_tcgdex_with_failures],
+    ids=["fake", "tcgdex"],
+)
 def failing_provider(request: pytest.FixtureRequest) -> CatalogProvider:
     factory: Callable[[pytest.FixtureRequest], CatalogProvider] = request.param
     return factory(request)
 
 
-@pytest.fixture(params=[index_down_fake], ids=["fake"])
+@pytest.fixture(params=[index_down_fake, index_down_tcgdex], ids=["fake", "tcgdex"])
 def index_down_provider(request: pytest.FixtureRequest) -> CatalogProvider:
     factory: Callable[[pytest.FixtureRequest], CatalogProvider] = request.param
     return factory(request)
