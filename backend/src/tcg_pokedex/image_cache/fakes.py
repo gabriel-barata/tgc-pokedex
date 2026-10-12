@@ -1,5 +1,6 @@
 """In-memory fakes of the image-cache ports, shared by every test."""
 
+import threading
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -10,11 +11,71 @@ from tcg_pokedex.image_cache.domain import (
     ArtworkToFetch,
     CardImages,
     CardToResolve,
+    ImageFailure,
     Language,
+    Missing,
     SetTracking,
     StoredCardImage,
 )
 from tcg_pokedex.image_cache.ports import ImageStoreUnavailableError
+
+
+class InMemoryImageProvider:
+    """ImageProvider serving seeded assets; anything not seeded is missing.
+
+    `fail` makes a base URL, an artwork URL or an English card id answer with a
+    failure. `requests` records each call: the base or artwork URL, or `en/{card_id}`.
+    """
+
+    def __init__(self) -> None:
+        self._images: dict[str, CardImages] = {}
+        self._english: dict[str, str] = {}
+        self._artwork: dict[str, bytes] = {}
+        self._failures: dict[str, str] = {}
+        self._lock = threading.Lock()
+        self.requests: list[str] = []
+
+    def add_image(self, base_url: str, images: CardImages) -> None:
+        self._images[base_url] = images
+
+    def add_english(self, card_id: str, base_url: str) -> None:
+        self._english[card_id] = base_url
+
+    def add_artwork(self, url: str, content: bytes) -> None:
+        self._artwork[url] = content
+
+    def fail(self, key: str, reason: str) -> None:
+        self._failures[key] = reason
+
+    def fetch_card_images(
+        self, card_id: str, base_url: str
+    ) -> CardImages | Missing | ImageFailure:
+        self._record(base_url)
+        if base_url in self._failures:
+            return ImageFailure(
+                kind="card", provider_id=card_id, reason=self._failures[base_url]
+            )
+        return self._images.get(base_url, Missing())
+
+    def english_image_url(self, card_id: str) -> str | ImageFailure | None:
+        self._record(f"en/{card_id}")
+        if card_id in self._failures:
+            return ImageFailure(
+                kind="card", provider_id=card_id, reason=self._failures[card_id]
+            )
+        return self._english.get(card_id)
+
+    def fetch_artwork(
+        self, set_id: str, kind: ArtworkKind, url: str
+    ) -> bytes | Missing | ImageFailure:
+        self._record(url)
+        if url in self._failures:
+            return ImageFailure.of_artwork(set_id, kind, self._failures[url])
+        return self._artwork.get(url, Missing())
+
+    def _record(self, request: str) -> None:
+        with self._lock:
+            self.requests.append(request)
 
 
 class InMemoryImageStore:

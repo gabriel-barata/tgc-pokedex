@@ -113,6 +113,14 @@ class ImageFailure(_Model):
     provider_id: str
     reason: str
 
+    @classmethod
+    def of_artwork(cls, set_id: str, kind: ArtworkKind, reason: str) -> "ImageFailure":
+        return cls(
+            kind="logo" if kind is ArtworkKind.LOGO else "symbol",
+            provider_id=set_id,
+            reason=reason,
+        )
+
 
 class ImageCounts(_Model):
     downloaded: int = Field(ge=0)
