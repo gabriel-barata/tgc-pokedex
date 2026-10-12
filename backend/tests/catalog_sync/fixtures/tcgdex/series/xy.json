@@ -1,0 +1,34 @@
+{
+  "id": "xy",
+  "name": "XY",
+  "firstSet": {
+    "cardCount": {
+      "official": 39,
+      "total": 39
+    },
+    "id": "xy0",
+    "name": "Conjunto para Iniciantes Kalos",
+    "symbol": "https://assets.tcgdex.net/univ/xy/xy0/symbol"
+  },
+  "lastSet": {
+    "cardCount": {
+      "official": 108,
+      "total": 113
+    },
+    "id": "xy12",
+    "name": "Evoluções",
+    "symbol": "https://assets.tcgdex.net/univ/xy/xy12/symbol"
+  },
+  "releaseDate": "2013-11-08",
+  "sets": [
+    {
+      "cardCount": {
+        "official": 39,
+        "total": 39
+      },
+      "id": "xy0",
+      "name": "Conjunto para Iniciantes Kalos",
+      "symbol": "https://assets.tcgdex.net/univ/xy/xy0/symbol"
+    }
+  ]
+}

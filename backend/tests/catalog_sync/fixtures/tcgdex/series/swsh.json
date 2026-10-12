@@ -1,0 +1,48 @@
+{
+  "id": "swsh",
+  "logo": "https://assets.tcgdex.net/pt/swsh/swsh1/logo",
+  "name": "Espada e Escudo",
+  "firstSet": {
+    "cardCount": {
+      "official": 307,
+      "total": 307
+    },
+    "id": "swshp",
+    "logo": "https://assets.tcgdex.net/pt/swsh/swshp/logo",
+    "name": "ESES Promos",
+    "symbol": "https://assets.tcgdex.net/univ/swsh/swshp/symbol"
+  },
+  "lastSet": {
+    "cardCount": {
+      "official": 159,
+      "total": 160
+    },
+    "id": "swsh12.5",
+    "logo": "https://assets.tcgdex.net/pt/swsh/swsh12.5/logo",
+    "name": "Realeza Absoluta",
+    "symbol": "https://assets.tcgdex.net/univ/swsh/swsh12.5/symbol"
+  },
+  "releaseDate": "2019-11-15",
+  "sets": [
+    {
+      "cardCount": {
+        "official": 307,
+        "total": 307
+      },
+      "id": "swshp",
+      "logo": "https://assets.tcgdex.net/pt/swsh/swshp/logo",
+      "name": "ESES Promos",
+      "symbol": "https://assets.tcgdex.net/univ/swsh/swshp/symbol"
+    },
+    {
+      "cardCount": {
+        "official": 72,
+        "total": 73
+      },
+      "id": "swsh4.5",
+      "logo": "https://assets.tcgdex.net/pt/swsh/swsh4.5/logo",
+      "name": "Destinos Brilhantes ",
+      "symbol": "https://assets.tcgdex.net/univ/swsh/swsh4.5/symbol"
+    }
+  ]
+}

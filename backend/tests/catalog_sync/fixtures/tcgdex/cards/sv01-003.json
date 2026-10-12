@@ -1,0 +1,112 @@
+{
+  "category": "Pokémon",
+  "id": "sv01-003",
+  "illustrator": "kurumitsu",
+  "image": "https://assets.tcgdex.net/pt/sv/sv01/003",
+  "localId": "003",
+  "name": "Shroomish",
+  "rarity": "Comum",
+  "set": {
+    "cardCount": {
+      "official": 198,
+      "total": 258
+    },
+    "id": "sv01",
+    "logo": "https://assets.tcgdex.net/pt/sv/sv01/logo",
+    "name": "Escarlate e Violeta",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "Normal",
+      "size": "Padrão",
+      "variantId": "endfynwn4n10gzq"
+    },
+    {
+      "type": "Reverse",
+      "size": "Padrão",
+      "variantId": "cm4kqul3x1bwlz1f"
+    }
+  ],
+  "dexId": [
+    285
+  ],
+  "hp": 60,
+  "types": [
+    "Planta"
+  ],
+  "stage": "Básico",
+  "attacks": [
+    {
+      "cost": [
+        "Planta"
+      ],
+      "name": "Absorção",
+      "effect": "Cure 10 pontos de dano deste Pokémon.",
+      "damage": 10
+    }
+  ],
+  "weaknesses": [
+    {
+      "type": "Fogo",
+      "value": "×2"
+    }
+  ],
+  "retreat": 1,
+  "regulationMark": "G",
+  "legal": {
+    "standard": false,
+    "expanded": true
+  },
+  "updated": "2026-08-20T01:44:01+01:00",
+  "thirdParty": {
+    "cardmarket": 702300,
+    "tcgplayer": 487832
+  },
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-10-11T22:54:32.672Z",
+      "unit": "EUR",
+      "idProduct": 702300,
+      "avg": 0.04,
+      "low": 0.02,
+      "trend": 0.02,
+      "avg1": 0.02,
+      "avg7": 0.03,
+      "avg30": 0.04,
+      "avg-holo": 0.1,
+      "low-holo": 0.02,
+      "trend-holo": 0.09,
+      "avg1-holo": 0.1,
+      "avg7-holo": 0.08,
+      "avg30-holo": 0.1
+    },
+    "tcgplayer": {
+      "unit": "USD",
+      "updated": "2026-10-11T22:55:06.135Z",
+      "normal": {
+        "productId": 487832,
+        "lowPrice": 0.01,
+        "midPrice": 0.16,
+        "highPrice": 19.8,
+        "marketPrice": 0.1,
+        "directLowPrice": null
+      },
+      "reverse-holofoil": {
+        "productId": 487832,
+        "lowPrice": 0.05,
+        "midPrice": 0.2,
+        "highPrice": 19.8,
+        "marketPrice": 0.16,
+        "directLowPrice": null
+      }
+    }
+  }
+}

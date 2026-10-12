@@ -1,0 +1,35 @@
+{
+  "cardCount": {
+    "firstEd": 0,
+    "holo": 434,
+    "normal": 16,
+    "official": 307,
+    "reverse": 0,
+    "total": 307
+  },
+  "cards": [
+    {
+      "id": "swshp-SWSH032",
+      "localId": "SWSH032",
+      "name": "Snorlax"
+    },
+    {
+      "id": "swshp-SWSH158",
+      "localId": "SWSH158",
+      "name": "Greninja V-UNIÃO"
+    }
+  ],
+  "id": "swshp",
+  "legal": {
+    "expanded": true,
+    "standard": false
+  },
+  "logo": "https://assets.tcgdex.net/pt/swsh/swshp/logo",
+  "name": "ESES Promos",
+  "releaseDate": "2019-11-15",
+  "serie": {
+    "id": "swsh",
+    "name": "Espada e Escudo"
+  },
+  "symbol": "https://assets.tcgdex.net/univ/swsh/swshp/symbol"
+}

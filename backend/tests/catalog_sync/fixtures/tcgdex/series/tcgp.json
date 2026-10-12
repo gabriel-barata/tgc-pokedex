@@ -1,0 +1,33 @@
+{
+  "id": "tcgp",
+  "name": "Pokémon Estampas Ilustradas Pocket",
+  "firstSet": {
+    "cardCount": {
+      "official": 226,
+      "total": 226
+    },
+    "id": "A1",
+    "name": "Dominação Genética",
+    "symbol": "https://assets.tcgdex.net/univ/tcgp/A1/symbol"
+  },
+  "lastSet": {
+    "cardCount": {
+      "official": 93,
+      "total": 93
+    },
+    "id": "B2a",
+    "name": "Paldean Wonders"
+  },
+  "releaseDate": "2024-10-30",
+  "sets": [
+    {
+      "cardCount": {
+        "official": 226,
+        "total": 226
+      },
+      "id": "A1",
+      "name": "Dominação Genética",
+      "symbol": "https://assets.tcgdex.net/univ/tcgp/A1/symbol"
+    }
+  ]
+}

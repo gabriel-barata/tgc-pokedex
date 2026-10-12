@@ -1,0 +1,105 @@
+{
+  "category": "Pokémon",
+  "id": "xy0-2",
+  "illustrator": "Masakazu Fukuda",
+  "image": "https://assets.tcgdex.net/pt/xy/xy0/2",
+  "localId": "2",
+  "name": "Pansage",
+  "rarity": "None",
+  "set": {
+    "cardCount": {
+      "official": 39,
+      "total": 39
+    },
+    "id": "xy0",
+    "name": "Conjunto para Iniciantes Kalos",
+    "symbol": "https://assets.tcgdex.net/univ/xy/xy0/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": false,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "normal",
+      "size": "Padrão",
+      "variantId": "generated"
+    }
+  ],
+  "dexId": [
+    511
+  ],
+  "hp": 70,
+  "types": [
+    "Planta"
+  ],
+  "stage": "Básico",
+  "attacks": [
+    {
+      "cost": [
+        "Incolor"
+      ],
+      "name": "Coleta",
+      "effect": "Compre um card."
+    },
+    {
+      "cost": [
+        "Incolor",
+        "Incolor"
+      ],
+      "name": "Golpes de Fúria",
+      "effect": "Jogue 3 moedas. Este ataque causa 30 de danos vezes o número de caras.",
+      "damage": "10×"
+    }
+  ],
+  "weaknesses": [
+    {
+      "type": "Fogo",
+      "value": "×2"
+    }
+  ],
+  "retreat": 1,
+  "legal": {
+    "standard": false,
+    "expanded": true
+  },
+  "updated": "2026-08-15T23:07:37+01:00",
+  "thirdParty": {
+    "cardmarket": 281268,
+    "tcgplayer": 87939
+  },
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-10-11T22:54:32.658Z",
+      "unit": "EUR",
+      "idProduct": 281268,
+      "avg": 0.6,
+      "low": 0.02,
+      "trend": 0.46,
+      "avg1": 0.45,
+      "avg7": 0.5,
+      "avg30": 0.37,
+      "avg-holo": null,
+      "low-holo": null,
+      "trend-holo": 1.1,
+      "avg1-holo": 1.1,
+      "avg7-holo": 0.7,
+      "avg30-holo": 0.7
+    },
+    "tcgplayer": {
+      "unit": "USD",
+      "updated": "2026-10-11T22:54:51.698Z",
+      "normal": {
+        "productId": 87939,
+        "lowPrice": 0.2,
+        "midPrice": 0.5,
+        "highPrice": 19.8,
+        "marketPrice": 0.57,
+        "directLowPrice": null
+      }
+    }
+  }
+}

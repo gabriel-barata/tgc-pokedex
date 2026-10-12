@@ -1,0 +1,120 @@
+{
+  "category": "Pokémon",
+  "id": "sv01-006",
+  "illustrator": "DOM",
+  "image": "https://assets.tcgdex.net/pt/sv/sv01/006",
+  "localId": "006",
+  "name": "Cacturne",
+  "rarity": "Incomum",
+  "set": {
+    "cardCount": {
+      "official": 198,
+      "total": 258
+    },
+    "id": "sv01",
+    "logo": "https://assets.tcgdex.net/pt/sv/sv01/logo",
+    "name": "Escarlate e Violeta",
+    "symbol": "https://assets.tcgdex.net/univ/sv/sv01/symbol"
+  },
+  "variants": {
+    "firstEdition": false,
+    "holo": false,
+    "normal": true,
+    "reverse": true,
+    "wPromo": false
+  },
+  "variants_detailed": [
+    {
+      "type": "Reverse",
+      "size": "Padrão",
+      "variantId": "cm4kqul3x1bwlz1f"
+    },
+    {
+      "type": "Normal",
+      "size": "Padrão",
+      "variantId": "endfynwn4n10gzq"
+    }
+  ],
+  "dexId": [
+    332
+  ],
+  "hp": 130,
+  "types": [
+    "Planta"
+  ],
+  "stage": "Estágio 1",
+  "abilities": [
+    {
+      "type": "Habilidade",
+      "name": "Penas de Contra-ataque",
+      "effect": "Se este Pokémon estiver no Campo Ativo e for danificado por um ataque dos Pokémon do seu oponente (mesmo que este Pokémon seja Nocauteado), coloque 3 contadores de dano no Pokémon Atacante."
+    }
+  ],
+  "attacks": [
+    {
+      "cost": [
+        "Incolor",
+        "Incolor",
+        "Incolor"
+      ],
+      "name": "Disparo de Espinhos",
+      "damage": 110
+    }
+  ],
+  "weaknesses": [
+    {
+      "type": "Fogo",
+      "value": "×2"
+    }
+  ],
+  "retreat": 2,
+  "regulationMark": "G",
+  "legal": {
+    "standard": false,
+    "expanded": true
+  },
+  "updated": "2026-08-20T01:44:01+01:00",
+  "thirdParty": {
+    "cardmarket": 702303,
+    "tcgplayer": 487836
+  },
+  "pricing": {
+    "cardmarket": {
+      "updated": "2026-10-11T22:54:32.640Z",
+      "unit": "EUR",
+      "idProduct": 702303,
+      "avg": 0.05,
+      "low": 0.02,
+      "trend": 0.04,
+      "avg1": 0.03,
+      "avg7": 0.03,
+      "avg30": 0.04,
+      "avg-holo": 0.19,
+      "low-holo": 0.02,
+      "trend-holo": 0.15,
+      "avg1-holo": 0.15,
+      "avg7-holo": 0.16,
+      "avg30-holo": 0.18
+    },
+    "tcgplayer": {
+      "unit": "USD",
+      "updated": "2026-10-11T22:55:06.135Z",
+      "reverse-holofoil": {
+        "productId": 487836,
+        "lowPrice": 0.11,
+        "midPrice": 0.25,
+        "highPrice": 19.8,
+        "marketPrice": 0.25,
+        "directLowPrice": null
+      },
+      "normal": {
+        "productId": 487836,
+        "lowPrice": 0.01,
+        "midPrice": 0.15,
+        "highPrice": 20,
+        "marketPrice": 0.12,
+        "directLowPrice": null
+      }
+    }
+  }
+}

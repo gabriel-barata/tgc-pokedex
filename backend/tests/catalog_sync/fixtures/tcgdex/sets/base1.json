@@ -1,0 +1,26 @@
+{
+  "cardCount": {
+    "firstEd": 0,
+    "holo": 0,
+    "normal": 0,
+    "official": 102,
+    "reverse": 0,
+    "total": 102
+  },
+  "cards": [],
+  "id": "base1",
+  "legal": {
+    "expanded": false,
+    "standard": false
+  },
+  "name": "Coleção Básica",
+  "releaseDate": "1999-01-09",
+  "serie": {
+    "id": "base",
+    "name": "Coleção Básica"
+  },
+  "tcgOnline": "BS",
+  "abbreviation": {
+    "official": "BS"
+  }
+}
