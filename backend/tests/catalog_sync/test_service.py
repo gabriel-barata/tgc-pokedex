@@ -8,9 +8,9 @@ from tcg_pokedex.catalog_sync.domain import (
     Failure,
     Fetched,
     KindCounts,
-    RunStatus,
     SetBatch,
     SetCounts,
+    SyncResult,
 )
 from tcg_pokedex.catalog_sync.fakes import (
     InMemoryCatalogProvider,
@@ -18,6 +18,8 @@ from tcg_pokedex.catalog_sync.fakes import (
 )
 from tcg_pokedex.catalog_sync.service import sync_catalog
 from tcg_pokedex.clock.fake import FakeClock
+from tcg_pokedex.sync_runs.domain import RunStatus
+from tcg_pokedex.sync_runs.fakes import InMemorySyncRunRepository
 from tests.catalog_sync.builders import make_card, make_listing, make_series, make_set
 
 START = datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
@@ -57,8 +59,9 @@ def catalog() -> InMemoryCatalogProvider:
 def test_a_first_run_stores_every_physical_set_with_cards() -> None:
     provider = catalog()
     repository = InMemoryCatalogRepository()
+    runs = InMemorySyncRunRepository()
 
-    run = sync_catalog(provider, repository, FakeClock(START))
+    run = sync_catalog(provider, repository, runs, FakeClock(START))
 
     assert repository.series == {"sv": Fetched(SV, START)}
     assert repository.sets == {
@@ -77,17 +80,18 @@ def test_a_first_run_stores_every_physical_set_with_cards() -> None:
     assert run.result.counts.sets == SetCounts(
         fetched=2, created=2, updated=0, unchanged=0, skipped=1, failed=0
     )
-    assert repository.get_run(run.id) == run
+    assert runs.get_run(run.id, SyncResult) == run
 
 
 def test_a_second_run_updates_changed_rows_and_keeps_unlisted_ones() -> None:
     repository = InMemoryCatalogRepository()
-    sync_catalog(catalog(), repository, FakeClock(START))
+    runs = InMemorySyncRunRepository()
+    sync_catalog(catalog(), repository, runs, FakeClock(START))
     renamed = make_card(name="Pineco Renomeado")
     provider = InMemoryCatalogProvider()
     provider.add_set(make_listing(card_ids=["sv01-001"]), [renamed])
 
-    run = sync_catalog(provider, repository, FakeClock(LATER))
+    run = sync_catalog(provider, repository, runs, FakeClock(LATER))
 
     assert repository.cards["sv01-001"] == Fetched(renamed, LATER)
     assert repository.cards["sv01-002"] == Fetched(SV01_CARDS[1], START)
@@ -107,7 +111,9 @@ def test_set_and_card_failures_make_a_partial_run(
     provider.fail_card("sv01-002", "HTTP 404")
     repository = InMemoryCatalogRepository()
 
-    run = sync_catalog(provider, repository, FakeClock(START))
+    run = sync_catalog(
+        provider, repository, InMemorySyncRunRepository(), FakeClock(START)
+    )
 
     assert run.status is RunStatus.PARTIAL
     assert run.result is not None
@@ -125,13 +131,14 @@ def test_an_unavailable_index_fails_the_run_before_any_write() -> None:
     provider = catalog()
     provider.take_down("HTTP 500 after 3 attempts")
     repository = InMemoryCatalogRepository()
+    runs = InMemorySyncRunRepository()
 
-    run = sync_catalog(provider, repository, FakeClock(START))
+    run = sync_catalog(provider, repository, runs, FakeClock(START))
 
     assert run.status is RunStatus.FAILED
     assert run.error == "HTTP 500 after 3 attempts"
-    assert repository.calls == ["start_run", "finish_run"]
-    assert repository.get_run(run.id) == run
+    assert repository.sets == {}
+    assert runs.get_run(run.id, SyncResult) == run
 
 
 class ExplodingRepository(InMemoryCatalogRepository):
@@ -141,10 +148,10 @@ class ExplodingRepository(InMemoryCatalogRepository):
 
 
 def test_an_unexpected_error_fails_the_run_and_still_closes_it() -> None:
-    repository = ExplodingRepository()
+    runs = InMemorySyncRunRepository()
 
-    run = sync_catalog(catalog(), repository, FakeClock(START))
+    run = sync_catalog(catalog(), ExplodingRepository(), runs, FakeClock(START))
 
     assert run.status is RunStatus.FAILED
     assert run.error == "connection lost"
-    assert repository.get_run(run.id) == run
+    assert runs.get_run(run.id, SyncResult) == run

@@ -1,0 +1,66 @@
+"""What every `tcg sync …` command shares: logging, output and exit codes."""
+
+import json
+import logging
+import sys
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
+from datetime import UTC, datetime
+
+from pydantic import BaseModel
+
+from tcg_pokedex.sync_runs.domain import RunStatus, SyncRun
+
+EXIT_CODES = {RunStatus.SUCCEEDED: 0, RunStatus.PARTIAL: 1, RunStatus.FAILED: 2}
+STORE_ERROR_EXIT_CODE = EXIT_CODES[RunStatus.FAILED]
+
+app_logger = logging.getLogger("tcg_pokedex")
+
+
+class JsonLineFormatter(logging.Formatter):
+    """One JSON object per record: `event`, `level`, `time` and the record's fields."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        fields: dict[str, object] = record.__dict__.get("fields", {})
+        return json.dumps(
+            {
+                "event": record.getMessage(),
+                "level": record.levelname,
+                "time": datetime.fromtimestamp(record.created, UTC).isoformat(),
+                **fields,
+            },
+            ensure_ascii=False,
+        )
+
+
+@contextmanager
+def json_lines_on_stderr() -> Generator[None]:
+    """Send the app's log only to stderr, as JSON lines, while the block runs."""
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(JsonLineFormatter())
+    previous_level, previous_propagate = app_logger.level, app_logger.propagate
+    app_logger.addHandler(handler)
+    app_logger.setLevel(logging.INFO)
+    app_logger.propagate = False
+    try:
+        yield
+    finally:
+        app_logger.removeHandler(handler)
+        app_logger.setLevel(previous_level)
+        app_logger.propagate = previous_propagate
+
+
+def report_run[R: BaseModel](sync: Callable[[], SyncRun[R]]) -> int:
+    """Run a sync, print the closed run as one JSON object, and return its exit code.
+
+    The app's log goes only to stderr, as JSON lines. When the run record cannot be
+    created or closed, it prints nothing, logs `sync.run.error` and returns 2.
+    """
+    with json_lines_on_stderr():
+        try:
+            run = sync()
+        except Exception as error:
+            app_logger.error("sync.run.error", extra={"fields": {"error": str(error)}})
+            return STORE_ERROR_EXIT_CODE
+    print(run.model_dump_json())
+    return EXIT_CODES[run.status]

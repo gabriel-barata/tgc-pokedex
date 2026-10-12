@@ -12,14 +12,15 @@ from pydantic import PostgresDsn
 from sqlalchemy import select
 
 from tcg_pokedex.catalog_sync.adapters import tables
-from tcg_pokedex.catalog_sync.adapters.postgres import PostgresCatalogRepository
 from tcg_pokedex.catalog_sync.command import run_catalog_sync
-from tcg_pokedex.catalog_sync.domain import RunStatus, SyncRun
+from tcg_pokedex.catalog_sync.domain import SyncResult
 from tcg_pokedex.clock.fake import FakeClock
 from tcg_pokedex.config import Settings
 from tcg_pokedex.database import create_database_engine
 from tcg_pokedex.migrations import upgrade_to_head
-from tests.catalog_sync.tcgdex_fixtures import (
+from tcg_pokedex.sync_runs.adapters.postgres import PostgresSyncRunRepository
+from tcg_pokedex.sync_runs.domain import RunStatus, SyncRun
+from tests.tcgdex.fixtures import (
     HAPPY,
     INDEX_DOWN,
     WITH_FAILURES,
@@ -38,8 +39,8 @@ class Outcome:
     log: list[dict[str, Any]]
 
     @property
-    def run(self) -> SyncRun:
-        return SyncRun.model_validate_json(self.stdout)
+    def run(self) -> SyncRun[SyncResult]:
+        return SyncRun[SyncResult].model_validate_json(self.stdout)
 
 
 @pytest.fixture
@@ -81,7 +82,7 @@ def test_a_first_run_stores_the_catalog_prints_the_run_and_exits_0(
     try:
         with engine.connect() as connection:
             cards = connection.execute(select(tables.cards)).mappings().all()
-        stored_run = PostgresCatalogRepository(engine).get_run(run.id)
+        stored_run = PostgresSyncRunRepository(engine).get_run(run.id, SyncResult)
     finally:
         engine.dispose()
     assert {card["id"]: card["variants"] for card in cards} == {

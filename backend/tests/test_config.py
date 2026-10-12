@@ -11,6 +11,7 @@ def isolated_config(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     """Run each test in an empty directory (no .env) with no TCG_POKEDEX_* set."""
     monkeypatch.delenv("TCG_POKEDEX_ENVIRONMENT", raising=False)
     monkeypatch.delenv("TCG_POKEDEX_DATABASE_URL", raising=False)
+    monkeypatch.delenv("TCG_POKEDEX_IMAGE_DIR", raising=False)
     monkeypatch.chdir(tmp_path)
     return tmp_path
 
@@ -70,3 +71,13 @@ def test_non_postgres_database_url_is_rejected(
 
     with pytest.raises(ValidationError):
         Settings()
+
+
+def test_image_dir_defaults_to_data_images_and_reads_its_env_var(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert Settings().image_dir == Path("data/images")
+
+    monkeypatch.setenv("TCG_POKEDEX_IMAGE_DIR", "/data/images")
+
+    assert Settings().image_dir == Path("/data/images")

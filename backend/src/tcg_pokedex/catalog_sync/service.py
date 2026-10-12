@@ -6,21 +6,24 @@ from tcg_pokedex.catalog_sync.domain import (
     Card,
     Failure,
     ResultBuilder,
-    RunStatus,
-    SyncKind,
-    SyncRun,
+    SyncResult,
     is_pocket_series,
     plan_set,
 )
 from tcg_pokedex.catalog_sync.ports import CatalogProvider, CatalogRepository
 from tcg_pokedex.clock.ports import Clock
+from tcg_pokedex.sync_runs.domain import RunStatus, SyncKind, SyncRun
+from tcg_pokedex.sync_runs.ports import SyncRunRepository
 
 logger = logging.getLogger("tcg_pokedex.catalog_sync")
 
 
 def sync_catalog(
-    provider: CatalogProvider, repository: CatalogRepository, clock: Clock
-) -> SyncRun:
+    provider: CatalogProvider,
+    repository: CatalogRepository,
+    runs: SyncRunRepository,
+    clock: Clock,
+) -> SyncRun[SyncResult]:
     """Copy the provider's physical catalog into the repository, one set at a time.
 
     The run is recorded before any catalog write and closed at the end, also when it
@@ -28,13 +31,13 @@ def sync_catalog(
     card failures are recorded and the run goes on; an unavailable index or any other
     error fails the run, keeping the sets already saved.
     """
-    run = SyncRun(
+    run = SyncRun[SyncResult](
         id=uuid4(),
         kind=SyncKind.CATALOG,
         status=RunStatus.RUNNING,
         started_at=clock.now(),
     )
-    repository.start_run(run)
+    runs.start_run(run)
     _log("sync.run.started", run_id=str(run.id), kind=run.kind.value)
     sets = _SetSync(provider, repository, run)
     error = None
@@ -45,7 +48,7 @@ def sync_catalog(
         error = str(failure)
         sets.result.abort()
     closed = _close(run, sets.result, clock, error)
-    repository.finish_run(closed)
+    runs.finish_run(closed)
     _log(
         "sync.run.finished",
         run_id=str(closed.id),
@@ -70,7 +73,10 @@ class _SetSync:
     """Syncs one set at a time, writing each series only the first time."""
 
     def __init__(
-        self, provider: CatalogProvider, repository: CatalogRepository, run: SyncRun
+        self,
+        provider: CatalogProvider,
+        repository: CatalogRepository,
+        run: SyncRun[SyncResult],
     ) -> None:
         self._provider = provider
         self._repository = repository
@@ -112,10 +118,10 @@ class _SetSync:
 
 
 def _close(
-    run: SyncRun, result: ResultBuilder, clock: Clock, error: str | None
-) -> SyncRun:
+    run: SyncRun[SyncResult], result: ResultBuilder, clock: Clock, error: str | None
+) -> SyncRun[SyncResult]:
     finished_at = clock.now()
-    return SyncRun(
+    return SyncRun[SyncResult](
         id=run.id,
         kind=run.kind,
         source=run.source,

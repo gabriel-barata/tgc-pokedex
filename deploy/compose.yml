@@ -6,6 +6,8 @@ services:
     restart: unless-stopped
     environment:
       TCG_POKEDEX_DATABASE_URL: postgresql+psycopg://tcg_pokedex:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/tcg_pokedex
+    volumes:
+      - images:/data/images
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,3 +47,4 @@ networks:
 
 volumes:
   postgres-data:
+  images:

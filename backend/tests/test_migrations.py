@@ -7,7 +7,17 @@ from sqlalchemy import create_engine, inspect
 
 from tcg_pokedex.migrations import alembic_config, upgrade_to_head
 
-SCHEMA = {"alembic_version", "owners", "series", "sets", "cards", "sync_runs"}
+SCHEMA = {
+    "alembic_version",
+    "owners",
+    "series",
+    "sets",
+    "cards",
+    "sync_runs",
+    "tracked_sets",
+    "card_images",
+    "set_artwork",
+}
 
 
 def table_names(database_url: str) -> set[str]:

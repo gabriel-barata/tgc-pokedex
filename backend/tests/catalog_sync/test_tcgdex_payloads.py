@@ -3,7 +3,7 @@ import json
 from tcg_pokedex.catalog_sync.adapters.tcgdex_payloads import parse_card, parse_set
 from tcg_pokedex.catalog_sync.domain import Failure, Series, SetListing
 from tests.catalog_sync.builders import make_card, make_set
-from tests.catalog_sync.tcgdex_fixtures import FIXTURES
+from tests.tcgdex.fixtures import FIXTURES
 
 
 def card_payload(*removed: str, **changes: object) -> bytes:

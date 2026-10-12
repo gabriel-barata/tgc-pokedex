@@ -23,14 +23,17 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.13-slim
 RUN groupadd --system --gid 10001 app \
-    && useradd --system --uid 10001 --gid app --no-create-home app
+    && useradd --system --uid 10001 --gid app --no-create-home app \
+    && mkdir -p /data/images \
+    && chown app:app /data/images
 WORKDIR /app
 COPY --from=backend /app /app
 COPY --from=frontend /app/frontend/dist /app/spa
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     TCG_POKEDEX_ENVIRONMENT=prod \
-    TCG_POKEDEX_SPA_DIR=/app/spa
+    TCG_POKEDEX_SPA_DIR=/app/spa \
+    TCG_POKEDEX_IMAGE_DIR=/data/images
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --start-interval=2s --retries=3 \
