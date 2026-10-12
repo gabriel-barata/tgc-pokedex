@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Track which Pokémon TCG cards we own or are missing in each set."
 requires-python = ">=3.13"
 dependencies = [
-    "alembic>=1.20.0",
     "fastapi>=0.143.0",
     "httpx2>=2.13.1",
     "psycopg[binary]>=3.3.6",
@@ -22,6 +21,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "atlas-provider-sqlalchemy>=0.5.2",
     "pyright>=1.1.414",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
@@ -75,7 +75,7 @@ known-first-party = ["tcg_pokedex"]
 ban-relative-imports = "all"
 
 [tool.pyright]
-include = ["src", "tests", "migrations"]
+include = ["src", "tests", "atlas_schema"]
 typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"

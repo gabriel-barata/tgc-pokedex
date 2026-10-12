@@ -1,7 +1,6 @@
 *
 !backend/pyproject.toml
 !backend/uv.lock
-!backend/alembic.ini
 !backend/migrations/
 !backend/src/
 !deploy/crontab

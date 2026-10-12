@@ -7,7 +7,7 @@ db:
 	$(COMPOSE) up -d --wait
 
 migrate: db
-	cd backend && uv run python -m tcg_pokedex.migrations
+	cd backend && uv run tcg migrate
 
 dev: migrate
 	trap 'kill 0' INT TERM; \
