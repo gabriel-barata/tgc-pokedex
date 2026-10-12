@@ -126,6 +126,7 @@ jobs:
           curl -fsS http://127.0.0.1:8000/healthz | grep -F '"status":"ok"'
           curl -fsS http://127.0.0.1:8000/ | grep -F '<div id="root">'
           curl -fsS http://127.0.0.1:8000/sets/sv08 | grep -F '<div id="root">'
+          docker run --rm tcg-pokedex:ci tcg --help | grep -F 'sync'
       - name: Show the app logs
         if: failure()
         run: docker logs app
