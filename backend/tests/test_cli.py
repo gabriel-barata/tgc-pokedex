@@ -4,7 +4,7 @@ from tcg_pokedex import cli
 from tcg_pokedex.config import Settings
 
 
-@pytest.mark.parametrize("target", ["catalog", "images"])
+@pytest.mark.parametrize("target", ["catalog", "images", "all"])
 def test_tcg_sync_runs_the_target_and_exits_with_its_code(
     monkeypatch: pytest.MonkeyPatch, target: str
 ) -> None:
