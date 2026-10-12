@@ -3,8 +3,9 @@
 from datetime import date
 from enum import StrEnum
 from typing import Literal
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from tcg_pokedex.tables import MAX_QUANTITY
 
@@ -130,3 +131,48 @@ class QuantityUpdate(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     quantity: int = Field(ge=0, le=MAX_QUANTITY)
+
+
+class RunCounts(BaseModel):
+    """Items a run fetched from the provider, changed in our store, and failed on."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    fetched: int = Field(ge=0)
+    updated: int = Field(ge=0)
+    failed: int = Field(ge=0)
+
+
+class RunFailure(BaseModel):
+    """One item a run failed on: its kind, its provider id and why."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    kind: str
+    provider_id: str
+    reason: str
+
+
+class SyncRunEntry(BaseModel):
+    """A sync run. `counts` is None until it ends; `failures` keeps the first 100."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: UUID
+    kind: SyncKind
+    status: RunStatus
+    started_at: AwareDatetime
+    finished_at: AwareDatetime | None
+    duration_ms: int | None = Field(ge=0)
+    counts: RunCounts | None
+    failures: list[RunFailure]
+    error: str | None
+
+
+class SyncStatus(BaseModel):
+    """Whether a sync or set download runs now, and the latest runs, newest first."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    running: bool
+    runs: list[SyncRunEntry]
