@@ -97,6 +97,16 @@ def track_set(
     return _tracking(repository, cache, owner_id, set_id)
 
 
+@router.delete("/sets/{set_id}/tracking", responses=UNKNOWN_SET)
+def untrack_set(
+    set_id: str, owner_id: Owner, repository: Repository, cache: Cache
+) -> SetTracking:
+    """Untrack the set. Its cached images stay, and a running download goes on."""
+    _require_set(repository, set_id)
+    repository.untrack(owner_id, set_id)
+    return _tracking(repository, cache, owner_id, set_id)
+
+
 @router.get(
     "/images/cards/{card_id}/{size}", response_class=FileResponse, responses=IMAGE
 )

@@ -114,6 +114,47 @@
             }
           }
         }
+      },
+      "delete": {
+        "summary": "Untrack Set",
+        "description": "Untrack the set. Its cached images stay, and a running download goes on.",
+        "operationId": "untrack_set_api_sets__set_id__tracking_delete",
+        "parameters": [
+          {
+            "name": "set_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Set Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetTracking"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The set is not in the catalog"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/images/cards/{card_id}/{size}": {

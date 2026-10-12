@@ -44,7 +44,7 @@ class ImageSyncPorts:
 def sync_images(
     ports: ImageSyncPorts, clock: Clock, set_id: str | None = None
 ) -> SyncRun[ImageSyncResult]:
-    """Cache the card images of `set_id`.
+    """Cache the card images of `set_id`, or of every tracked set when it is None.
 
     The run is recorded before any download and closed at the end, also when it
     fails. Every row written carries the run's start time as its fetch time. A failed
@@ -64,7 +64,8 @@ def sync_images(
     try:
         ports.store.check_writable()
         with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-            for each in [set_id] if set_id is not None else []:
+            set_ids = [set_id] if set_id else ports.repository.tracked_set_ids()
+            for each in set_ids:
                 job.sync_cards(pool, each)
     except Exception as failure:
         error = str(failure)

@@ -36,7 +36,11 @@ export interface paths {
          */
         put: operations["track_set_api_sets__set_id__tracking_put"];
         post?: never;
-        delete?: never;
+        /**
+         * Untrack Set
+         * @description Untrack the set. Its cached images stay, and a running download goes on.
+         */
+        delete: operations["untrack_set_api_sets__set_id__tracking_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -216,6 +220,44 @@ export interface operations {
         };
     };
     track_set_api_sets__set_id__tracking_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetTracking"];
+                };
+            };
+            /** @description The set is not in the catalog */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    untrack_set_api_sets__set_id__tracking_delete: {
         parameters: {
             query?: never;
             header?: never;
