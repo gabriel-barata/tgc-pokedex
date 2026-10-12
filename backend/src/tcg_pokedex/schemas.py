@@ -88,3 +88,11 @@ class CardOwnership(BaseModel):
     variants: list[VariantQuantity]
     owned: bool
     wanted_version_missing: bool
+
+
+class QuantityUpdate(BaseModel):
+    """The number of copies to record for one variant of a card."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    quantity: int = Field(ge=0, le=MAX_QUANTITY)

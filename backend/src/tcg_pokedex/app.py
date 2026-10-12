@@ -6,7 +6,7 @@ from fastapi import FastAPI
 
 from tcg_pokedex.config import Settings
 from tcg_pokedex.db import create_database_engine
-from tcg_pokedex.routes import health, images, sets
+from tcg_pokedex.routes import cards, health, images, sets
 from tcg_pokedex.routes.sets import DownloadRegistry
 from tcg_pokedex.spa import SpaStaticFiles
 
@@ -42,6 +42,7 @@ def create_app(
     app.include_router(health.router)
     app.include_router(sets.router)
     app.include_router(images.router)
+    app.include_router(cards.router)
     if settings.spa_dir is not None:
         app.mount("/", SpaStaticFiles(str(settings.spa_dir)), name="spa")
     return app
